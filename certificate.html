@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate of Completion - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Simple Public Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Certificate Container -->
+    <div class="container" style="margin-top: 100px; text-align: center; padding: 2rem;">
+        <div id="certificateCard" class="graduation-card" style="background: white; padding: 4rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 10px solid #f0f4ff;">
+            <div id="certificateContent">
+                <div class="spinner"></div>
+                <p>Loading Certificate...</p>
+            </div>
+        </div>
+
+        <div id="certificateActions" style="margin-top: 2rem; display: none;">
+            <button class="btn btn-primary" onclick="downloadAsPDF(this)">
+                <i class="fas fa-download"></i> Download as PDF
+            </button>
+            <button class="btn btn-outline" onclick="shareLink()">
+                <i class="fas fa-share-alt"></i> Copy Shareable Link
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const certificateId = urlParams.get('id');
+
+        async function loadCertificate() {
+            const certificateContent = document.getElementById('certificateContent');
+            if (!certificateId) {
+                certificateContent.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: #e74c3c; margin-bottom: 2rem;"></i>
+                    <h1 style="color: #333;">Invalid Certificate Link</h1>
+                    <p style="font-size: 1.2rem; color: #666;">The link you followed is missing a certificate ID.</p>
+                `;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/certificate/view/${certificateId}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Certificate not found.');
+                }
+
+                const completionDate = new Date(data.completionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                certificateContent.innerHTML = `
+                    <i class="fas fa-award" style="font-size: 5rem; color: #ffd700; margin-bottom: 2rem;"></i>
+                    <h1 style="font-size: 2.5rem; color: #333; font-family: 'Times New Roman', serif;">Certificate of Completion</h1>
+                    <p style="font-size: 1.2rem; color: #666; margin: 2rem 0;">This is to certify that</p>
+                    <h2 style="font-size: 2.8rem; color: #667eea; font-family: 'Brush Script MT', cursive;">${data.fullName}</h2>
+                    <p style="font-size: 1.2rem; color: #666; margin: 2rem 0;">has successfully completed the Luminar School preparatory course.</p>
+                    <p style="font-size: 1.1rem; color: #333;"><strong>Date of Completion:</strong> ${completionDate}</p>
+                    <p style="font-size: 0.8rem; color: #aaa; margin-top: 3rem;">Certificate ID: ${certificateId}</p>
+                `;
+
+                document.getElementById('certificateActions').style.display = 'block';
+
+            } catch (err) {
+                certificateContent.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="font-size: 5rem; color: #e74c3c; margin-bottom: 2rem;"></i>
+                    <h1 style="color: #333;">Certificate Not Found</h1>
+                    <p style="font-size: 1.2rem; color: #666;">The certificate you are looking for does not exist or the link is invalid.</p>
+                `;
+            }
+        }
+
+        async function downloadAsPDF(button) {
+            // To download the PDF, the user must be logged in.
+            if (!isLoggedIn()) {
+                alert('Please log in to your account to download the official PDF certificate.');
+                window.location.href = `login.html?redirect=certificate.html?id=${certificateId}`;
+                return;
+            }
+
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            button.disabled = true;
+
+            try {
+                const res = await apiGet('/api/certificate/download');
+                if (!res.ok) {
+                    let errorMessage = 'Could not generate certificate. Your session may have expired or you have not passed the exam.';
+                    try {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) { /* Ignore if response is not JSON */ }
+                    throw new Error(errorMessage);
+                }
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                
+                const disposition = res.headers.get('Content-Disposition');
+                let filename = 'certificate.pdf';
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) { 
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                button.innerHTML = '<i class="fas fa-download"></i> Download as PDF';
+                button.disabled = false;
+            }
+        }
+
+        function shareLink() {
+            copyToClipboard(window.location.href);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCertificate);
+    </script>
+</body>
+</html>

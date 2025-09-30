@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="schedule.html" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="stream-selection.html" class="nav-link">Subjects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Container -->
+    <div class="container" style="margin-top: 100px; padding: 2rem 0;">
+        <!-- Welcome Section -->
+        <div class="dashboard-header" style="text-align: center; margin-bottom: 3rem;">
+            <h1>Welcome back, <span id="userName"></span>!</h1>
+
+
+            <p>Continue your learning journey and track your progress.</p>
+            <button id="mainStartLearningBtn" class="btn btn-primary" style="margin-top: 1.5rem; padding: 15px 30px; font-size: 1.1rem; display: none;">
+                <i class="fas fa-play"></i> Start Learning
+            </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 3rem;">
+            <div class="action-card" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.1); cursor: pointer;" onclick="window.location.href='schedule.html'">
+                <i class="fas fa-calendar-alt" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+                <h3>Study Schedule</h3>
+                <p>Set up your study times and get reminders</p>
+            </div>
+            <div id="startLearningCard" class="action-card" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.1); cursor: pointer;" onclick="window.location.href='subjects.html'">
+                <i class="fas fa-graduation-cap" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+                <h3>Start Learning</h3>
+                <p>Choose your stream and begin studying</p>
+            </div>
+            <div class="action-card" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.1); cursor: pointer;" onclick="showProgress()">
+                <i class="fas fa-chart-line" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+                <h3>View Progress</h3>
+                <p>Track your learning progress and achievements</p>
+            </div>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="progress-section" style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); margin-bottom: 3rem;">
+            <h2 style="margin-bottom: 2rem; text-align: center;">Your Progress Overview</h2>
+            <div class="progress-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="progress-card">
+                    <h3 id="completedSubjects">0</h3>
+                    <p>Subjects Completed</p>
+                </div>
+                <div class="progress-card">
+                    <h3 id="totalQuizzes">0</h3>
+                    <p>Quizzes Taken</p>
+                </div>
+                <div class="progress-card">
+                    <h3 id="averageScore">0%</h3>
+                    <p>Average Score</p>
+                </div>
+                <div class="progress-card">
+                    <h3 id="studyHours">0</h3>
+                    <p>Study Hours</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity" style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); margin-bottom: 3rem;">
+            <h2 style="margin-bottom: 2rem;">Recent Activity</h2>
+            <div id="activityList">
+                <div class="activity-item" style="padding: 1rem; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                    <i class="fas fa-user-plus" style="color: #27ae60; margin-right: 1rem;"></i>
+                    <div>
+                        <p><strong>Account Created</strong></p>
+                        <p style="color: #666; font-size: 0.9rem;">Welcome to Luminar Academy!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Tasks -->
+        <div class="upcoming-tasks" style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 2rem;">Upcoming Tasks</h2>
+            <div id="tasksList">
+                <div class="task-item" style="padding: 1rem; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p><strong>Set up your study schedule</strong></p>
+                        <p style="color: #666; font-size: 0.9rem;">Choose your preferred study times</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.location.href='schedule.html'">Complete</button>
+                </div>
+                <div class="task-item" style="padding: 1rem; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p><strong>Select your academic stream</strong></p>
+                        <p style="color: #666; font-size: 0.9rem;">Choose between Natural or Social Sciences</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.location.href='stream-selection.html'">Complete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('progressModal')">&times;</span>
+            <h2>Your Learning Progress</h2>
+            <div id="progressDetails">
+                <div class="progress-item" style="margin-bottom: 2rem;">
+                    <h3>Overall Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <p style="text-align: center; margin-top: 0.5rem;">0% Complete</p>
+                </div>
+                
+                <div class="subject-progress" style="margin-bottom: 2rem;">
+                    <h3>Subject Progress</h3>
+                    <div id="subjectProgressList">
+                        <p style="text-align: center; color: #666;">No subjects started yet</p>
+                    </div>
+                </div>
+                
+                <div class="achievements" style="margin-bottom: 2rem;">
+                    <h3>Achievements</h3>
+                    <div id="achievementsList">
+                        <p style="text-align: center; color: #666;">No achievements yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Load user data and update dashboard
+
+        function updateProgressStats() {
+            // This function can be enhanced to calculate stats from the user object
+        }
+        
+        function showProgress() {
+            // This function can be enhanced to show progress from the user object
+            
+            // Update progress bar
+            const progressFill = document.querySelector('#progressModal .progress-fill');
+            const progressText = document.querySelector('#progressModal .progress-item p');
+            
+            if (progressFill) {
+                progressFill.style.width = overallProgress + '%';
+            }
+            if (progressText) {
+                progressText.textContent = overallProgress + '% Complete';
+            }
+            
+            // Update subject progress
+            // updateSubjectProgress(progressData);
+            
+            // Update achievements
+            // updateAchievements(progressData);
+            
+            showModal('progressModal');
+        }
+        
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // This now waits for the full user object from the server before doing anything else.
+            const user = await syncAndGetCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // All subsequent functions now use the correct, complete user object.
+            document.getElementById('userName').textContent = user.fullName;
+
+            // Update the main "Start Learning" button and the quick action card
+            const mainStartBtn = document.getElementById('mainStartLearningBtn');
+            const startLearningCard = document.getElementById('startLearningCard');
+            
+            if (user.stream) {
+                mainStartBtn.textContent = 'Continue Learning';
+                mainStartBtn.onclick = () => window.location.href = 'subjects.html';
+                startLearningCard.querySelector('h3').textContent = 'View Subjects';
+                startLearningCard.querySelector('p').textContent = 'Go to your subject list';
+            } else {
+                mainStartBtn.textContent = 'Start Learning';
+                mainStartBtn.onclick = () => window.location.href = 'stream-selection.html';
+                startLearningCard.querySelector('h3').textContent = 'View Subjects';
+                startLearningCard.querySelector('p').textContent = 'Choose a stream to see subjects';
+            }
+            mainStartBtn.style.display = 'inline-block';
+
+            // Render stats from the synced user object
+            const quizResults = user.quizResults || [];
+            const progress = user.progress || [];
+            const activities = user.activities || [];
+
+            document.getElementById('totalQuizzes').textContent = quizResults.length;
+            const totalScore = quizResults.reduce((sum, r) => sum + r.score, 0);
+            document.getElementById('averageScore').textContent = quizResults.length > 0 ? `${Math.round(totalScore / quizResults.length)}%` : '0%';
+
+            // Render recent activity
+            const activityList = document.getElementById('activityList');
+            if (activities.length === 0) {
+                activityList.innerHTML = '<p style="text-align: center; color: #666;">No recent activity.</p>';
+            } else {
+                activityList.innerHTML = activities.map(activity => `
+                    <div class="activity-item" style="padding: 1rem; border-bottom: 1px solid #e9ecef; display: flex; align-items: center;">
+                        <i class="fas fa-${getActivityIcon(activity.type)}" style="color: #667eea; margin-right: 1rem;"></i>
+                        <div>
+                            <p><strong>${activity.message}</strong></p>
+                            <p style="color: #666; font-size: 0.9rem;">${activity.description || ''}</p>
+                            <p style="color: #999; font-size: 0.8rem;">${new Date(activity.createdAt).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+
+        function getActivityIcon(type) {
+            const icons = {
+                'account_created': 'user-plus',
+                'quiz_completed': 'check-circle',
+                'subject_completed': 'graduation-cap',
+                'schedule_set': 'calendar-alt',
+                'stream_selected': 'book-open',
+                'payment_submitted': 'credit-card',
+                'unit_completed': 'check-square'
+            };
+            return icons[type] || 'info-circle';
+        }
+    </script>
+</body>
+</html>

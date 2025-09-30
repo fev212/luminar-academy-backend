@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link login-btn">Login</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Registration Form -->
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Create Your Account</h2>
+            <p>Join thousands of Ethiopian students preparing for national exams</p>
+        </div>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input type="text" id="fullName" name="fullName" required>
+                <div class="error" id="fullNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required>
+                <div class="error" id="emailError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="schoolName">School Name *</label>
+                <input type="text" id="schoolName" name="schoolName" required>
+                <div class="error" id="schoolNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required>
+                <div class="error" id="passwordError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <div class="error" id="confirmPasswordError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="profilePhoto">Profile Photo</label>
+                <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" class="file-input">
+                <div class="error" id="profilePhotoError"></div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="terms" name="terms" required>
+                    I agree to the <a href="#" style="color: #667eea;">Terms of Service</a> and <a href="#" style="color: #667eea;">Privacy Policy</a> *
+                </label>
+                <div class="error" id="termsError"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </form>
+
+        <div class="form-footer">
+            <p>Already have an account? <a href="login.html">Login here</a></p>
+        </div>
+    </div>
+
+    <!-- Requirements Modal -->
+    <div id="requirementsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('requirementsModal')">&times;</span>
+            <h2>Enrollment Requirements</h2>
+            <p>Before proceeding to payment, please ensure you meet these requirements:</p>
+            <ul style="margin: 1rem 0; padding-left: 2rem;">
+                <li>You are currently enrolled in Grade 9, 10, 11, or 12</li>
+                <li>You have access to a reliable internet connection</li>
+                <li>You have a device (computer, tablet, or smartphone) for learning</li>
+                <li>You are committed to following the study schedule</li>
+                <li>You have a valid payment method (Telebirr, CBE, Awash Bank, or Dashen Bank)</li>
+            </ul>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="proceedToPayment()">I Meet All Requirements</button>
+                <button class="btn btn-outline" onclick="closeModal('requirementsModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Registration form validation
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            clearErrors();
+            
+            // Get form data
+            const form = e.target;
+            const data = Object.fromEntries(new FormData(form));
+            
+            // Validate form
+            let isValid = true;
+            
+            // Full name validation
+            if (!data.fullName || data.fullName.trim().length < 2) {
+                showError('fullNameError', 'Please enter your full name (at least 2 characters)');
+                isValid = false;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!data.email || !emailRegex.test(data.email)) {
+                showError('emailError', 'Please enter a valid email address');
+                isValid = false;
+            }
+            
+            // School name validation
+            if (!data.schoolName || data.schoolName.trim().length < 2) {
+                showError('schoolNameError', 'Please enter your school name');
+                isValid = false;
+            }
+            
+            // Password validation
+            if (!data.password || data.password.length < 6) {
+                showError('passwordError', 'Password must be at least 6 characters long');
+                isValid = false;
+            }
+            
+            // Confirm password validation
+            if (data.password !== data.confirmPassword) {
+                showError('confirmPasswordError', 'Passwords do not match');
+                isValid = false;
+            }
+            
+            // Terms validation
+            if (!data.terms) {
+                showError('termsError', 'You must agree to the terms and conditions');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                try {
+                    // The backend expects JSON, not FormData, so we construct the body manually.
+                    // The profile photo is not handled by the backend, so it's omitted here.
+                    const payload = {
+                        fullName: data.fullName,
+                        email: data.email,
+                        schoolName: data.schoolName,
+                        password: data.password
+                    };
+
+                    const res = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resp = await res.json();
+                    if (!res.ok) throw new Error(resp.error || 'Registration failed');
+                    
+                    // Auto-login the user by setting the token
+                    if (resp.token) setAuthToken(resp.token);
+                    localStorage.setItem('isLoggedIn', 'true');
+                    if (resp.user) localStorage.setItem('currentUser', JSON.stringify(resp.user));
+
+                    // Critical fix: End the trial session upon successful registration.
+                    endTrial();
+                    
+                    // Redirect directly to payment page for a smoother user experience
+                    window.location.href = 'payment.html';
+                } catch (err) {
+                    console.error('Registration error:', err);
+                    // Display the error message in a more relevant place if possible
+                    showError('emailError', err.message);
+                }
+            }
+        });
+        
+        function clearErrors() {
+            const errorElements = document.querySelectorAll('.error');
+            errorElements.forEach(element => {
+                element.textContent = '';
+            });
+        }
+        
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.textContent = message;
+            }
+        }
+        
+        function proceedToPayment() {
+            // This function is no longer needed as we redirect directly,
+            // but we'll keep it in case the modal is used elsewhere.
+            closeModal('requirementsModal');
+            window.location.href = 'payment.html';
+        }
+        
+        // Mobile menu handled globally in script.js
+    </script>
+</body>
+</html>

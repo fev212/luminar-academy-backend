@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">// --- Seed admin ---
+    async function seedAdmin() {
+        const adminEmail = 'admin@luminarschool.com';
+        const adminPassword = 'admin123';
+        const passwordHash = bcrypt.hashSync(adminPassword, BCRYPT_ROUNDS);
+    
+        // Use findOneAndUpdate with upsert to either create or update the admin user
+        await User.findOneAndUpdate(
+            { email: adminEmail },
+            {
+                $set: {
+                    role: 'admin',
+                    fullName: 'Site Admin',
+                    schoolName: 'N/A',
+                    passwordHash: passwordHash,
+                    verified: true
+                }
+            },
+            { upsert: true, new: true } // upsert: create if not found; new: return updated doc
+        );
+        console.log(`Admin user '' ensured to be up to date.`);
+        // ...
+    }
+    
+    <title>Subjects - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<style>
+    .subjects-grid .subject-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .subjects-grid .subject-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .subject-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .subject-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .subject-icon i {
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .subject-header h3 {
+        margin: 0;
+        color: #333;
+    }
+
+    .subject-header p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .subject-progress {
+        margin-bottom: 1rem;
+    }
+
+    .subject-progress .progress-bar {
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .subject-progress .progress-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
+    .subject-grades {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .grade-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .grade-item .grade-bubble {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.5rem;
+        color: white;
+        font-weight: bold;
+    }
+
+    .grade-item .grade-bubble.completed { background-color: #27ae60; }
+    .grade-item .grade-bubble.in-progress { background-color: #f39c12; }
+    .grade-item .grade-bubble.not-started { background-color: #e9ecef; color: #666; }
+
+    .subject-actions {
+        margin-top: auto; /* Pushes the button to the bottom */
+    }
+
+</style>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="schedule.html" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="stream-selection.html" class="nav-link">Subjects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Subjects Container -->
+    <div class="container" style="margin-top: 100px; padding: 2rem 0;">
+        <div class="form-header">
+            <h2>Your Subjects</h2>
+            <p>Select a subject to start learning. Each subject contains grade-level materials and quizzes.</p>
+        </div>
+
+        <!-- Stream Info -->
+        <div id="streamInfo" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 15px; margin-bottom: 3rem; text-align: center;">
+            <h3 id="streamTitle">Loading...</h3>
+            <p id="streamDescription">Loading stream information...</p>
+        </div>
+
+        <!-- Overall Progress -->
+        <div class="progress-section" style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); margin-bottom: 3rem;">
+            <h3 style="margin-bottom: 1rem;">Overall Progress</h3>
+            <div class="progress-bar" style="height: 20px; background-color: #e9ecef; border-radius: 10px; overflow: hidden;">
+                <div class="progress-fill" id="overallProgress" style="height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: width 0.3s ease; width: 0%;"></div>
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; color: #666;" id="progressText">0% Complete</p>
+        </div>
+
+        <!-- Subjects Grid -->
+        <div class="subjects-grid" id="subjectsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+            <!-- Subjects will be loaded dynamically -->
+        </div>
+
+        <!-- Final Exam Section -->
+        <div class="final-exam-section" style="margin-top: 4rem;">
+            <div class="form-header">
+                <h2>Final Exam</h2>
+                <p>Test your knowledge across all subjects to complete the course.</p>
+            </div>
+            <div id="finalExamCard" class="subject-card" style="background: white; border-radius: 15px; padding: 2rem; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-left: 5px solid #34495e;">
+                <div class="subject-header" style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <div class="subject-icon" style="width: 60px; height: 60px; background: #34495e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
+                        <i class="fas fa-graduation-cap" style="font-size: 1.5rem; color: white;"></i>
+                    </div>
+                    <h3 style="margin: 0; color: #333;">Final Exam (All Subjects)</h3>
+                </div>
+                <p id="finalExamStatus" style="color: #666;">Complete all grades in all subjects to unlock the final exam.</p>
+                <button id="finalExamBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" disabled onclick="handleFinalExamClick(this)">Take Final Exam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Modal -->
+    <div id="subjectModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('subjectModal')">&times;</span>
+            <h2 id="modalSubjectTitle">Subject Details</h2>
+            <div id="modalSubjectContent" style="max-height: 60vh; overflow-y: auto; padding-right: 1rem;">
+                <!-- Subject content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let currentStream = null;
+
+        const subjects = {
+            natural: [
+                {
+                    id: 'physics',
+                    name: 'Physics',
+                    icon: 'fas fa-atom',
+                    description: 'Study of matter, energy, and their interactions.',
+                    grades: [9, 10, 11, 12],
+                    color: '#e74c3c'
+                },
+                {
+                    id: 'chemistry',
+                    name: 'Chemistry',
+                    icon: 'fas fa-vial',
+                    description: 'Study of matter and its chemical reactions.',
+                    grades: [9, 10, 11, 12],
+                    color: '#f39c12'
+                },
+                {
+                    id: 'biology',
+                    name: 'Biology',
+                    icon: 'fas fa-dna',
+                    description: 'Study of living organisms and their life processes.',
+                    grades: [9, 10, 11, 12],
+                    color: '#27ae60'
+                },
+                {
+                    id: 'mathematics',
+                    name: 'Mathematics',
+                    icon: 'fas fa-calculator',
+                    description: 'Study of numbers, shapes, and various patterns.',
+                    grades: [9, 10, 11, 12],
+                    color: '#3498db'
+                },
+                {
+                    id: 'english',
+                    name: 'English',
+                    icon: 'fas fa-language',
+                    description: 'Study of the English language and its literature.',
+                    grades: [9, 10, 11, 12],
+                    color: '#9b59b6'
+                },
+                {
+                    id: 'english_advanced',
+                    name: 'Advanced English',
+                    icon: 'fas fa-award',
+                    description: 'Advanced grammar, literature, and writing skills.',
+                    grades: [9, 10, 11, 12],
+                    color: '#8e44ad'
+                }
+            ],
+            social: [
+                {
+                    id: 'history',
+                    name: 'History',
+                    icon: 'fas fa-book',
+                    description: 'Study of past events and their overall significance.',
+                    grades: [9, 10, 11, 12],
+                    color: '#e74c3c'
+                },
+                {
+                    id: 'geography',
+                    name: 'Geography',
+                    icon: 'fas fa-globe',
+                    description: 'Study of the Earth and its many features.',
+                    grades: [9, 10, 11, 12],
+                    color: '#27ae60'
+                },
+                {
+                    id: 'economics',
+                    name: 'Economics',
+                    icon: 'fas fa-chart-line',
+                    description: 'Study of production, distribution, and consumption.',
+                    grades: [9, 10, 11, 12],
+                    color: '#f39c12'
+                },
+                {
+                    id: 'english',
+                    name: 'English',
+                    icon: 'fas fa-language',
+                    description: 'Study of the English language and its literature.',
+                    grades: [9, 10, 11, 12],
+                    color: '#9b59b6'
+                },
+                {
+                    id: 'mathematics',
+                    name: 'Mathematics',
+                    icon: 'fas fa-calculator',
+                    description: 'Study of numbers, shapes, and various patterns.',
+                    grades: [9, 10, 11, 12],
+                    color: '#3498db'
+                },                {
+                    id: 'english_advanced',
+                    name: 'Advanced English',
+                    icon: 'fas fa-award',
+                    description: 'Advanced grammar, literature, and writing skills.',
+                    grades: [9, 10, 11, 12],
+                    color: '#8e44ad'
+                }
+            ]
+        };
+
+        async function loadSubjects() {
+            const user = await syncAndGetCurrentUser();
+            const trialActive = isTrialActive();
+
+            if (!trialActive && user && user.paymentStatus !== 'approved') {
+                window.location.href = 'enrollment-status.html';
+                return;
+            }
+            let stream = user ? user.stream : null;
+
+            if (!stream && trialActive) {
+                // For trial users, the stream is stored locally
+                stream = localStorage.getItem('trialStream');
+            }
+
+            if (!stream) {
+                // If no stream is found (neither in the user's profile nor in localStorage),
+                // the user must be sent to select one. This applies to all users.
+                window.location.href = 'stream-selection.html';
+                return;
+            }
+            currentStream = stream;
+            
+            // Update stream info
+            const streamNames = {
+                'natural': 'Natural Sciences',
+                'social': 'Social Sciences'
+            };
+            
+            document.getElementById('streamTitle').textContent = streamNames[currentStream];
+            document.getElementById('streamDescription').textContent = `You are studying ${streamNames[currentStream]} subjects. Click on any subject to start learning.`;
+
+            // Display subjects
+            await displaySubjects(user);
+
+            // Update overall progress
+            await updateOverallProgress(user);
+
+            // Check and display final exam status
+            checkFinalExamStatus();
+        }
+
+        async function displaySubjects(user) {
+            const subjectsGrid = document.getElementById('subjectsGrid');
+            const streamSubjects = subjects[currentStream];
+
+            const trialActive = localStorage.getItem('trialActive') === 'true';
+            const trialPlan = localStorage.getItem('trialPlan');
+            const hasAdvancedPlan = user && user.plan === 'advanced' && user.paymentStatus === 'approved';
+
+            // Filter subjects based on user's plan
+            const filteredStreamSubjects = streamSubjects.filter(subject => {
+                // If it's Advanced English, only show it if the user has an advanced plan or advanced trial
+                if (subject.id === 'english_advanced') {
+                    return hasAdvancedPlan || (trialActive && trialPlan === 'advanced');
+                }
+                return true; // Show all other subjects
+            });
+
+            const subjectCardPromises = filteredStreamSubjects.map(async subject => {
+                // Restrict "Advanced English" to users with an advanced plan or advanced trial.
+                const progress = await calculateSubjectProgress(subject.id, user);
+                const hasAccess = (user && user.paymentStatus === 'approved') || trialActive;
+                
+                return `
+                    <div class="subject-card" onclick="openSubject(event, '${subject.id}')" style="border-left: 5px solid ${subject.color};">
+                        <div class="subject-header">
+                            <div class="subject-icon" style="background: ${subject.color};"> 
+                                <i class="${subject.icon}"></i>
+                            </div>
+                            <div>
+                                <h3>${subject.name}</h3>
+                                <p>${subject.description}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="subject-progress">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="color: #666;">Progress</span>
+                                <span style="color: #333; font-weight: bold;">${progress}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="background: ${subject.color}; width: ${progress}%;"></div>
+                            </div>
+                        </div>
+                        
+                        ${ subject.id === 'english_advanced' ? '' : `
+                            <div class="subject-grades">
+                                ${(await Promise.all(subject.grades.map(async grade => {
+                                    // Fetch total units to accurately determine completion status for the bubble.
+                                    const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
+                                    const data = await res.json();
+                                    const totalUnitsInGrade = data.units ? data.units.length : 1; // Avoid division by zero
+
+                                    const completedUnitsInGrade = user ? user.progress.filter(p => p.subject === subject.id && p.grade === grade && p.percentage === 100).length : 0;
+                                    const startedUnitsInGrade = user ? user.progress.filter(p => p.subject === subject.id && p.grade === grade).length : 0;
+                                    
+                                    const isCompleted = completedUnitsInGrade >= totalUnitsInGrade && totalUnitsInGrade > 0;
+                                    const isInProgress = startedUnitsInGrade > 0 && !isCompleted;
+                                    const statusClass = isCompleted ? 'completed' : isInProgress ? 'in-progress' : 'not-started';
+
+                                    return `
+                                        <div class="grade-item">
+                                            <div class="grade-bubble ${statusClass}">
+                                                ${isCompleted ? '✓' : grade}
+                                            </div>
+                                            <span style="font-size: 0.8rem; color: #666;">Grade ${grade}</span>
+                                        </div>
+                                    `;
+                                }))).join('')}
+                            </div>
+                        `}
+                        
+                        <div class="subject-actions">
+                            <button class="btn btn-primary" style="width: 100%;">
+                                <i class="fas fa-play"></i> ${hasAccess ? 'Select Grade' : 'Preview Unit 1'}
+                            </button>
+                        </div>
+                    </div> 
+                `;
+            });
+
+            subjectsGrid.innerHTML = (await Promise.all(subjectCardPromises)).join('');
+        }
+
+        async function calculateSubjectProgress(subjectId, user) {
+            const subject = subjects[currentStream]?.find(s => s.id === subjectId);
+            if (!subject || !user || !user.progress) return 0; // Return 0 for trial users or if no progress
+
+            // For "Advanced English", calculate progress based on its single set of units (grade 0)
+            if (subject.id === 'english_advanced') {
+                const res = await apiGet(`/api/courses/${subject.id}/0`);
+                const data = await res.json();
+                const totalUnits = data.units ? data.units.length : 0;
+                if (totalUnits === 0) return 0;
+                const completedUnits = user.progress.filter(p => p.subject === subjectId && p.grade === 0 && p.percentage === 100).length;
+                return Math.round((completedUnits / totalUnits) * 100);
+            }
+
+            const gradeProgresses = await Promise.all(subject.grades.map(async (grade) => {
+                const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
+                const data = await res.json();
+                const totalUnitsInGrade = data.units ? data.units.length : 0;
+                if (totalUnitsInGrade === 0) return 0;
+
+                const completedUnits = user.progress.filter(p => 
+                    p.subject === subjectId && p.grade === grade && p.percentage === 100
+                ).length;
+                return (completedUnits / totalUnitsInGrade) * 100;
+            }));
+
+            if (gradeProgresses.length === 0) return 0;
+            return Math.round(gradeProgresses.reduce((a, b) => a + b, 0) / gradeProgresses.length);
+        }
+
+        async function updateOverallProgress(user) {
+            const streamSubjects = subjects[currentStream] || [];
+            const trialActive = localStorage.getItem('trialActive') === 'true';
+            const trialPlan = localStorage.getItem('trialPlan');
+            const hasAdvancedPlan = user && user.plan === 'advanced' && user.paymentStatus === 'approved';
+
+            // Use the same filtering logic as displaySubjects to get the visible subjects
+            const visibleSubjects = streamSubjects.filter(subject => {
+                if (subject.id === 'english_advanced') {
+                    return hasAdvancedPlan || (trialActive && trialPlan === 'advanced');
+                }
+                return true;
+            });
+
+            let totalProgress = 0;
+            const progressPromises = visibleSubjects.map(subject => calculateSubjectProgress(subject.id, user));
+            const allProgresses = await Promise.all(progressPromises);
+
+            totalProgress = allProgresses.reduce((sum, p) => sum + p, 0);
+            const overallProgress = visibleSubjects.length > 0 ? Math.round(totalProgress / visibleSubjects.length) : 0;
+            
+            document.getElementById('overallProgress').style.width = overallProgress + '%';
+            document.getElementById('progressText').textContent = overallProgress + '% Complete';
+        }
+
+        function openSubject(event, subjectId) {
+            const subject = subjects[currentStream].find(s => s.id === subjectId);
+            if (!subject) return;
+            
+            document.getElementById('modalSubjectTitle').textContent = subject.name; // Use textContent for security
+            renderGradeList(subject);
+            showModal('subjectModal');
+        }
+
+        function startGrade(subjectId, grade) {
+            // Store current subject and grade
+            localStorage.setItem('currentSubject', subjectId);
+            localStorage.setItem('currentGrade', grade);
+            
+            // Redirect to course page
+            window.location.href = 'course.html';
+        }
+
+        function takeQuiz(subjectId, grade) {
+            // Store current subject and grade
+            localStorage.setItem('currentSubject', subjectId);
+            localStorage.setItem('currentGrade', grade);
+            
+            // Redirect to quiz page
+            window.location.href = 'quiz.html';
+        }
+
+        async function startLearning(subjectId) {
+            // This function will take the user to the first available grade.
+            // For trial, it's grade 9. For paid users, it's the next incomplete grade.
+            const trialActive = isTrialActive();
+            if (trialActive) {
+                startGrade(subjectId, 9);
+                return;
+            }
+
+            const user = await syncAndGetCurrentUser();
+            if (!user) {
+                startGrade(subjectId, 9); // Fallback for safety
+                return;
+            }
+
+            const streamSubjects = subjects[currentStream];
+            const subject = streamSubjects.find(s => s.id === subjectId);
+            if (subject) {
+                for (const grade of subject.grades) {
+                    const unitsInGrade = 4;
+                    const completedUnits = user.progress.filter(p => 
+                        p.subject === subject.id && p.grade === grade && p.percentage === 100
+                    ).length;
+                    
+                    if (completedUnits < unitsInGrade) {
+                        // This is the first incomplete grade, start here.
+                        startGrade(subjectId, grade);
+                        return;
+                    }
+                }
+            }
+
+        }
+
+        function handleFinalExamClick(button) {
+            if (button.disabled) {
+                alert('You must complete 100% of the notes in all your available subjects before you can take the final exam.');
+            }
+            // If not disabled, the onclick event set by checkFinalExamStatus will fire.
+        }
+
+        function takeFinalExam() {
+            localStorage.setItem('currentSubject', 'final');
+            localStorage.setItem('currentGrade', '0'); // Use 0 for non-graded content like final exam
+            localStorage.setItem('currentUnit', '1'); // Use 1 as the standard unit for the exam
+            window.location.href = 'quiz.html';
+        }
+
+        async function checkFinalExamStatus() {
+            const user = await syncAndGetCurrentUser();
+            if (!user || !user.progress || !currentStream) return;
+
+            const allStreamSubjects = subjects[currentStream];
+            if (!allStreamSubjects) return;
+
+            // Filter subjects to only those the user has access to, matching the display logic.
+            const trialActive = isTrialActive();
+            const trialPlan = localStorage.getItem('trialPlan');
+            const hasAdvancedPlan = user && user.plan === 'advanced' && user.paymentStatus === 'approved';
+            const streamSubjects = allStreamSubjects.filter(subject => {
+                if (subject.id === 'english_advanced') {
+                    return hasAdvancedPlan || (trialActive && trialPlan === 'advanced');
+                }
+                return true;
+            });
+
+            let allComplete = true;
+
+            for (const subject of streamSubjects) {
+
+                for (const grade of subject.grades) {
+                    // Fetch the actual number of units for this subject/grade from the backend
+                    const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
+                    const data = await res.json();
+                    const totalUnitsInGrade = data.units ? data.units.length : 0;
+
+                    if (totalUnitsInGrade === 0) continue; // Skip grades with no content
+
+                    const completedUnitsInGrade = user.progress.filter(p =>
+                        p.subject === subject.id && p.grade === grade && p.percentage === 100
+                    ).length;
+
+                    if (completedUnitsInGrade < totalUnitsInGrade) {
+                        allComplete = false;
+                        console.log(`Incomplete: ${subject.name} Grade ${grade}. Found ${completedUnitsInGrade}/${totalUnitsInGrade} units.`);
+                        break; // Exit the inner loop (grades)
+                    }
+                }
+
+                if (!allComplete) break; // Exit the outer loop (subjects)
+            }
+
+            const finalExamBtn = document.getElementById('finalExamBtn');
+            finalExamBtn.disabled = !allComplete;
+            if (allComplete) finalExamBtn.onclick = () => takeFinalExam();
+        }
+
+        async function renderGradeList(subject) {
+            const modalContent = document.getElementById('modalSubjectContent');
+            modalContent.innerHTML = `<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Loading...</p></div>`;
+
+            const user = await syncAndGetCurrentUser();
+            const trialActive = isTrialActive();
+            const isLoggedInUser = !trialActive;
+
+            // Special handling for "Advanced English" which has no grades
+            if (subject.id === 'english_advanced') {
+                modalContent.innerHTML = `
+                    <p style="color: #666; margin-bottom: 2rem;">${subject.description}</p>
+                    <div class="grades-list">
+                        <div class="grade-card" style="background: #f8f9fa; border-radius: 10px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid ${subject.color};">
+                            <h4 style="margin: 0 0 1rem 0; color: #333;">Advanced Content</h4>
+                            <button class="btn btn-primary" onclick="startGrade('${subject.id}', 0)" style="width: 100%;"><i class="fas fa-book-open"></i> Start Learning</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+                
+                modalContent.innerHTML = `
+                    <p style="color: #666; margin-bottom: 2rem;">${subject.description}</p>
+                    <div class="grades-list">
+                        ${subject.grades.map(grade => {
+                            const gradeProgress = 0; // This can be calculated from user.progress if needed
+                            const isCompleted = false; // This can be calculated from user.progress if needed
+                            
+                            // A user can start if their payment is approved AND they have the correct plan for the content.
+                            const hasBasicAccess = user && user.paymentStatus === 'approved';
+                            const hasAdvancedAccess = hasBasicAccess && user.plan === 'advanced';
+                            const hasTrialAccess = trialActive && grade === 9;
+                            const canStart = (subject.id === 'english_advanced') ? (hasAdvancedAccess || (hasTrialAccess && trialPlan === 'advanced')) : (hasBasicAccess || hasTrialAccess);
+
+                            return `
+                                <div class="grade-card" style="background: #f8f9fa; border-radius: 10px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid ${isCompleted ? '#27ae60' : gradeProgress > 0 ? '#f39c12' : '#e9ecef'};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h4 style="margin: 0; color: #333;">Grade ${grade}</h4>
+                                    </div>
+                                    <button class="btn btn-primary" onclick="startGrade('${subject.id}', ${grade})" ${!canStart ? 'disabled' : ''} style="width: 100%;">${!canStart ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-book-open"></i>'} ${canStart ? 'Study Grade' : 'Locked'}</button>
+                                    ${!canStart && trialActive ? `<p style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.5rem;">Please register and pay to access this content.</p>` : ''}
+                                </div>`;
+                        }).join('')}
+                    </div>`;
+        }
+
+        // Load subjects on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Perform authentication check first
+            if (!isLoggedIn() && !isTrialActive()) {
+                window.location.href = 'login.html';
+            } else {
+                loadSubjects();
+            }
+        });
+    </script>
+</body>
+</html>

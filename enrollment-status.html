@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrollment Status - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Status Container -->
+    <div class="container" style="margin-top: 100px; padding: 2rem 0;">
+        <div class="form-container" style="max-width: 700px;">
+            <div class="form-header">
+                <h2>Your Enrollment Status</h2>
+                <p>Here is the current status of your enrollment.</p>
+            </div>
+
+            <div id="statusContent" style="text-align: center;">
+                <!-- Status will be loaded here -->
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await syncAndGetCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const statusContent = document.getElementById('statusContent');
+            let message = '';
+            let icon = '';
+            let actions = '';
+
+            switch (user.paymentStatus) {
+                case 'pending':
+                    icon = '<i class="fas fa-hourglass-half" style="font-size: 4rem; color: #f39c12; margin-bottom: 1rem;"></i>';
+                    message = '<h3>Payment Pending Verification</h3><p>Your payment has been submitted and is being reviewed by our team. This usually takes less than 24 hours. Thank you for your patience.</p>';
+                    actions = `<a href="dashboard.html" class="btn btn-primary">Go to Dashboard</a>`;
+                    break;
+                case 'rejected':
+                    icon = '<i class="fas fa-times-circle" style="font-size: 4rem; color: #e74c3c; margin-bottom: 1rem;"></i>';
+                    message = '<h3>Payment Rejected</h3><p>There was an issue with your payment. Please try submitting your payment details again or contact support if the problem persists.</p>';
+                    actions = `<a href="payment.html" class="btn btn-primary">Submit Payment Again</a> <a href="#" class="btn btn-outline">Contact Support</a>`;
+                    break;
+                case 'none':
+                default:
+                    icon = '<i class="fas fa-credit-card" style="font-size: 4rem; color: #3498db; margin-bottom: 1rem;"></i>';
+                    message = '<h3>Complete Your Enrollment</h3><p>To get full access to all course materials, please submit your payment information.</p>';
+                    actions = `<a href="payment.html" class="btn btn-primary">Proceed to Payment</a>`;
+                    break;
+            }
+
+            statusContent.innerHTML = `
+                <div style="margin-bottom: 2rem;">${icon}</div>
+                <div>${message}</div>
+                <div style="margin-top: 2.5rem;">${actions}</div>
+            `;
+        });
+    </script>
+</body>
+</html>

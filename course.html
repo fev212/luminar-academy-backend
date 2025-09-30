@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="schedule.html" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="subjects.html" class="nav-link">Subjects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Course Container -->
+    <div class="course-container">
+        <div class="course-header">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <h1 id="courseTitle" style="margin: 0;">Loading...</h1>
+                <span id="courseGradeBadge" class="grade-badge" style="display: none;"></span>
+            </div>
+            <p id="courseDescription">Loading course information...</p>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="progress-overview">
+            <div class="progress-card">
+                <h3 id="currentUnit">Unit 1</h3>
+                <p>Current Unit</p>
+            </div>
+            <div class="progress-card">
+                <h3 id="completedUnits">0</h3>
+                <p>Units Completed</p>
+            </div>
+            <div class="progress-card">
+                <h3 id="totalUnits">0</h3>
+                <p>Total Units</p>
+            </div>
+            <div class="progress-card">
+                <h3 id="gradeProgress">0%</h3>
+                <p>Grade Progress</p>
+            </div>
+        </div>
+
+        <!-- Units List -->
+        <div class="units-section">
+            <h2>Course Units</h2>
+            <div class="units-list" id="unitsList">
+                <!-- Units will be loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Study Notes -->
+        <div class="study-notes" id="studyNotes" style="display: none;">
+            <div class="notes-header">
+                <h2 id="unitTitle">Unit Title</h2>
+                <button class="btn btn-outline" onclick="closeNotes()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+            <div class="notes-content" id="notesContent">
+                <!-- Notes content will be loaded here -->
+            </div>
+            <div class="notes-actions">
+                <button class="btn btn-primary" onclick="markUnitComplete()">
+                    <i class="fas fa-check"></i> Mark as Complete
+                </button>
+                <button class="btn btn-outline" onclick="takeUnitQuiz()">
+                    <i class="fas fa-question-circle"></i> Take Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unit Complete Modal -->
+    <div id="unitCompleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('unitCompleteModal')">&times;</span>
+            <div style="text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 4rem; color: #27ae60; margin-bottom: 1rem;"></i>
+                <h2>Unit Completed!</h2>
+                <p>Congratulations! You have completed this unit. You can now take the quiz or continue to the next unit.</p>
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="takeUnitQuiz()">Take Quiz</button>
+                    <button class="btn btn-outline" onclick="closeModal('unitCompleteModal')">Continue Learning</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let currentSubject = null;
+        let currentGrade = null;
+        let currentUnit = null;
+        let units = []; // Store units globally to avoid re-fetching
+
+        async function loadCourse() {
+            // Get current subject and grade
+            currentSubject = localStorage.getItem('currentSubject');
+            let gradeFromStorage = localStorage.getItem('currentGrade');
+            // For "Advanced English", grade is 0 and might not be in storage.
+            // We default to 0 if it's not a valid number.
+            currentGrade = !isNaN(parseInt(gradeFromStorage)) ? parseInt(gradeFromStorage) : 0;
+
+
+            const trialActive = localStorage.getItem('trialActive') === 'true';
+            
+            if (!currentSubject || isNaN(currentGrade)) {
+                window.location.href = 'subjects.html';
+                return;
+            }
+
+            // Ensure user data is synced before proceeding to load content
+            // This prevents the system from incorrectly treating a logged-in user as a trial user
+            // while the user data is still being fetched in the background.
+            const user = await syncAndGetCurrentUser();
+            if (!user && !trialActive) return; // If not a trial user and no user data, stop.
+
+            // Update course header
+            const subjectNames = {
+                'physics': 'Physics',
+                'chemistry': 'Chemistry',
+                'biology': 'Biology',
+                'mathematics': 'Mathematics',
+                'english': 'English',
+                'history': 'History',
+                'geography': 'Geography',
+                'economics': 'Economics'
+            };
+
+            const isAdvanced = currentSubject === 'english_advanced';
+            document.getElementById('courseTitle').textContent = isAdvanced ? 'Advanced English' : subjectNames[currentSubject];
+            document.getElementById('courseGradeBadge').textContent = `Grade ${currentGrade}`;
+            document.getElementById('courseGradeBadge').style.display = isAdvanced ? 'none' : 'inline-block';
+            document.getElementById('courseDescription').textContent = isAdvanced ? 'Advanced grammar, literature, and writing skills.' : `Study materials and notes for ${subjectNames[currentSubject]} Grade ${currentGrade}`;
+
+            // Load units
+            await loadUnits();
+
+            // Update progress
+            await updateProgress();
+        }
+
+        async function loadUnits() {
+            const unitsList = document.getElementById('unitsList');
+            unitsList.innerHTML = `<div style="text-align: center; padding: 2rem;"><div class="spinner"></div></div>`;
+
+            try {
+                const trialActive = isTrialActive();
+                const apiUrl = `/api/courses/${currentSubject}/${currentGrade}`;
+                const res = await apiGet(apiUrl);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to load units');
+                units = data.units || [];
+
+                if (units.length === 0) {
+                    unitsList.innerHTML = '<p style="text-align: center; color: #666;">No units available for this grade level.</p>';
+                    return;
+                }
+                const user = await syncAndGetCurrentUser();
+
+                const hasAccess = (user && user.paymentStatus === 'approved') || trialActive;
+                const isApprovedUser = user && user.paymentStatus === 'approved';
+
+                unitsList.innerHTML = units.map(unit => {
+                    const unitProgress = user ? user.progress.find(p => p.subject === currentSubject && p.grade === currentGrade && p.unit === unit.unit) : null;
+                    const isCompleted = unitProgress?.percentage === 100;
+                    const isStarted = !!unitProgress;
+                    const isLocked = !isApprovedUser && trialActive && unit.unit !== 1;
+                    return `
+                        <div class="unit-card ${isLocked ? 'locked' : ''}" style="display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 1.5rem; border-radius: 10px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <div style="flex-grow: 1;">
+                                <h3 style="margin: 0; color: #333;">Unit ${unit.unit}: ${unit.title}</h3>
+                                <p style="margin: 0.5rem 0 0 0; color: #666;">Click 'Study' to view the notes for this unit.</p>
+                            </div>
+                            <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem;">
+                                    <div class="unit-status ${isLocked ? 'not-started' : isCompleted ? 'completed' : isStarted ? 'in-progress' : 'not-started'}">
+                                        ${isLocked ? '<i class="fas fa-lock"></i> Locked' : (isCompleted ? '<i class="fas fa-check-circle"></i> Completed' : isStarted ? 'In Progress' : 'Not Started')}
+                                    </div>
+                                    <button class="btn btn-primary" onclick="openUnit(${unit.unit})" ${isLocked ? 'disabled' : ''} style="min-width: 120px;">
+                                        <i class="fas fa-book-open"></i> ${isLocked ? 'Locked' : 'Study'}
+                                    </button>
+                                    ${isLocked ? `<p style="color: #e74c3c; font-size: 0.8rem; margin: 0;">Please register and pay to access this content.</p>` : ''}
+                                </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Update total units
+                document.getElementById('totalUnits').textContent = units.length;
+            } catch (err) {
+                console.error("Error loading course units:", err);
+                unitsList.innerHTML = `<p style="text-align: center; color: #e74c3c;">Could not load course content. Please try again later.</p>`;
+            }
+        }
+
+        async function updateProgress() {
+            let completedUnits = 0;
+            let currentUnitId = 1;
+            
+            const user = await syncAndGetCurrentUser();
+            const userProgress = user ? user.progress : [];
+
+            units.forEach(unit => {
+                const isUnitCompleted = userProgress.some(p => p.subject === currentSubject && p.grade === currentGrade && p.unit === unit.unit && p.percentage === 100);
+                if (isUnitCompleted) {
+                    completedUnits++;
+                } else {
+                    // The next unit to study is the first one not completed
+                    if (currentUnitId <= completedUnits) {
+                        currentUnitId = unit.unit;
+                    }
+                }
+            });
+
+            document.getElementById('completedUnits').textContent = completedUnits;
+            document.getElementById('currentUnit').textContent = `Unit ${currentUnitId}`;
+            
+            const progress = units.length > 0 ? Math.round((completedUnits / units.length) * 100) : 0;
+            document.getElementById('gradeProgress').textContent = progress + '%';
+        }
+
+        async function openUnit(unitId) {
+            const unit = units.find(u => u.unit === unitId);
+            if (!unit) return;
+
+            currentUnit = unitId;
+            
+            // Mark unit as started
+            apiPost('/api/progress', { subject: currentSubject, grade: currentGrade, unit: unitId, status: 'started', percentage: 0 }).catch(console.error);
+
+            // Show study notes
+            document.getElementById('unitTitle').textContent = `Unit ${unitId}: ${unit.title}`;
+            let notesHTML = unit.videoUrl ? `
+                <div style="margin-bottom: 2rem;">
+                    <video controls width="100%" style="border-radius: 10px; max-width: 100%;"><source src="${unit.videoUrl}" type="video/mp4">Your browser does not support the video tag.</video>
+                </div>` : '';
+            notesHTML += `
+                <div class="notes-body" style="line-height: 1.8; color: #333;">${unit.content}</div>
+            `;
+            
+            document.getElementById('notesContent').innerHTML = notesHTML;
+            document.getElementById('studyNotes').style.display = 'block';
+            
+            // Scroll to notes
+            document.getElementById('studyNotes').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeNotes() {
+            document.getElementById('studyNotes').style.display = 'none';
+        }
+
+        function markUnitComplete() {
+            // The currentUnit variable holds the section/unit number being viewed.
+            if (!currentUnit) return;
+
+            apiPost('/api/progress', { subject: currentSubject, grade: currentGrade, unit: currentUnit, status: 'completed', percentage: 100 })
+                .then(async () => {
+                    // Update progress on the page immediately
+                    updateProgress();
+                    loadUnits();
+                })
+                .catch(console.error);
+
+            // Show completion modal
+            showModal('unitCompleteModal');
+            
+            // Close notes
+            closeNotes();
+        }
+
+        function takeUnitQuiz() {
+            // Store current unit for quiz
+            localStorage.setItem('currentUnit', currentUnit);
+            
+            // Redirect to quiz page
+            window.location.href = 'quiz.html';
+        }
+
+        // Mobile menu handled globally in script.js
+
+        // Check if user is logged in
+        if (!isLoggedIn() && !isTrialActive()) {
+            window.location.href = 'login.html';
+        }
+
+        // Load course on page load
+        document.addEventListener('DOMContentLoaded', loadCourse);
+    </script>

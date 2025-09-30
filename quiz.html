@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="schedule.html" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="subjects.html" class="nav-link">Subjects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Quiz Container -->
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 id="quizTitle">Loading Quiz...</h1>
+            <p id="quizDescription">Loading quiz information...</p>
+        </div>
+
+        <!-- Quiz Progress -->
+        <div class="quiz-progress">
+            <div class="progress-info">
+                <span>Question <span id="currentQuestionNumber">1</span> of <span id="totalQuestions">10</span></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="quizProgressBar" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Quiz Content -->
+        <div class="quiz-content" id="quizContent">
+            <!-- Quiz questions will be loaded here -->
+        </div>
+
+        <!-- Quiz Navigation -->
+        <div class="quiz-navigation" id="quizNavigation">
+            <button class="btn btn-outline" onclick="previousQuestion()" id="prevBtn" disabled>
+                <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="btn btn-primary" onclick="submitQuiz()" id="submitBtn" style="display: none;">
+                <i class="fas fa-check"></i> Submit Quiz
+            </button>
+        </div>
+    </div>
+
+    <!-- Quiz Results Modal -->
+    <div id="quizResultsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('quizResultsModal')">&times;</span>
+            <div style="text-align: center;">
+                <div id="quizResultIcon" style="font-size: 4rem; margin-bottom: 1rem;"></div>
+                <h2 id="quizResultTitle">Quiz Results</h2>
+                <div id="quizResultContent">
+                    <!-- Results content will be loaded here -->
+                </div>
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="goToSubjects()">Back to Subjects</button>
+                    <button class="btn btn-outline" onclick="retakeQuiz()" id="retakeBtn">Retake Quiz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let currentSubject = null;
+        let currentGrade = null;
+        let currentUnit = null;
+        let currentQuestion = 0;
+        let quizData = [];
+        let userAnswers = {};
+        let quizStartTime = null;
+
+        async function loadQuiz() {
+            // Get current subject, grade, and unit
+            currentSubject = localStorage.getItem('currentSubject');
+            currentGrade = parseInt(localStorage.getItem('currentGrade'));
+            currentUnit = parseInt(localStorage.getItem('currentUnit'));
+            
+            const trialActive = isTrialActive();
+            const isTrialContent = currentGrade === 9 && currentUnit === 1;
+
+            // If not on a trial, or if trying to access non-trial content, a valid session is required.
+            if (!isLoggedIn() && (!trialActive || !isTrialContent)) {
+                // If not logged in and not on a trial, redirect.
+                window.location.href = 'subjects.html';
+                return;
+            }
+
+            const res = await apiGet(`/api/courses/${currentSubject}/${currentGrade}?unit=${currentUnit}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to load quiz');
+            
+            quizData = data.questions || [];
+
+            if (quizData.length === 0) {
+                document.getElementById('quizContent').innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #f39c12; margin-bottom: 1rem;"></i>
+                        <h3>No Quiz Available</h3>
+                        <p>There are no quiz questions available for this unit yet.</p>
+                        <button class="btn btn-primary" onclick="goToCourse()">Back to Course</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Update quiz header
+            const subjectNames = {
+                'physics': 'Physics',
+                'chemistry': 'Chemistry',
+                'biology': 'Biology',
+                'mathematics': 'Mathematics',
+                'english': 'English',
+                'history': 'History',
+                'geography': 'Geography',
+                'economics': 'Economics'
+            };
+            let title, description;
+            if (currentSubject === 'final') {
+                title = 'Final Exam';
+                description = 'A comprehensive exam covering all subjects in your stream.';
+            } else {
+                title = `${subjectNames[currentSubject]} - Grade ${currentGrade} - Unit ${currentUnit} Quiz`;
+                description = `Test your knowledge of ${subjectNames[currentSubject]} Grade ${currentGrade} Unit ${currentUnit}`;
+            }
+            document.getElementById('quizTitle').textContent = title;
+            document.getElementById('quizDescription').textContent = description;
+
+            // Update progress info
+            document.getElementById('totalQuestions').textContent = quizData.length;
+
+            // Start quiz
+            startQuiz();
+        }
+
+        function startQuiz() {
+            currentQuestion = 0;
+            userAnswers = {};
+            quizStartTime = new Date();
+            
+            // Show first question
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQuestion >= quizData.length) {
+                submitQuiz();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            
+            document.getElementById('currentQuestionNumber').textContent = currentQuestion + 1;
+            document.getElementById('quizProgressBar').style.width = ((currentQuestion / quizData.length) * 100) + '%';
+
+            document.getElementById('quizContent').innerHTML = `
+                <div class="question-card">
+                    <div class="question-number">Question ${currentQuestion + 1}</div>
+                    <div class="question-text">${question.question}</div>
+                    <div class="options-list">
+                        ${question.options.map((option, index) => `
+                            <div class="option" onclick="selectAnswer(${index})" id="option${index}">
+                                <span class="option-letter">${String.fromCharCode(65 + index)}</span>
+                                <span class="option-text">${option}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // Highlight previously selected answer
+            if (userAnswers[currentQuestion] !== undefined) {
+                document.getElementById(`option${userAnswers[currentQuestion]}`).classList.add('selected');
+            }
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentQuestion === 0;
+            document.getElementById('nextBtn').style.display = currentQuestion < quizData.length - 1 ? 'inline-block' : 'none';
+            document.getElementById('submitBtn').style.display = currentQuestion === quizData.length - 1 ? 'inline-block' : 'none';
+        }
+
+        function selectAnswer(answerIndex) {
+            // Remove previous selection
+            document.querySelectorAll('.option').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Add selection to clicked option
+            document.getElementById(`option${answerIndex}`).classList.add('selected');
+
+            // Store answer
+            userAnswers[currentQuestion] = answerIndex;
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < quizData.length - 1) {
+                currentQuestion++;
+                showQuestion();
+            }
+        }
+
+        function submitQuiz() {
+            // Calculate score
+            let correctAnswers = 0;
+            const results = [];
+            
+            quizData.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === question.answer;
+                
+                if (isCorrect) {
+                    correctAnswers++;
+                }
+                
+                results.push({
+                    question: question.question,
+                    userAnswer: userAnswer,
+                    correctAnswer: question.answer,
+                    isCorrect: isCorrect,
+                    explanation: question.explanation
+                });
+            });
+            
+            const score = Math.round((correctAnswers / quizData.length) * 100);
+            const passed = score >= 80;
+            
+            // This function now correctly handles the logic for both regular quizzes and the final exam.
+            handleSubmit(score, passed, results);
+        }
+
+        function saveQuizResults(score, passed, results) {
+            // Do not save results for trial users
+            if (isTrialActive()) {
+                console.log('Trial mode: Quiz results not saved.');
+                return Promise.resolve(null);
+            }
+
+            // Also save to the backend for persistence
+            return apiPost('/api/quiz-results', {
+                subject: currentSubject,
+                grade: currentGrade,
+                unit: currentUnit,
+                score, passed
+            }).then(res => res.json()).catch(err => {
+                console.error('Failed to save quiz result to server:', err);
+                return null;
+            });
+        }
+
+        function showQuizResults(score, passed, results) {
+            const resultIcon = document.getElementById('quizResultIcon');
+            const resultTitle = document.getElementById('quizResultTitle');
+            const resultContent = document.getElementById('quizResultContent');
+            const retakeBtn = document.getElementById('retakeBtn');
+            
+            if (passed) {
+                // If it was a regular quiz, show the "passed" modal.
+                resultIcon.innerHTML = '<i class="fas fa-check-circle" style="color: #27ae60;"></i>';
+                resultTitle.textContent = 'Congratulations! You Passed!';
+                resultContent.innerHTML = `
+                    <p style="font-size: 1.2rem; margin-bottom: 1rem;">Your Score: <strong style="color: #27ae60;">${score}%</strong></p>
+                    <p>You have successfully completed this quiz with a score of ${score}%. You can now proceed to the next unit or continue with other subjects.</p>
+                `;
+                retakeBtn.style.display = 'none';
+            } else {
+                // If the quiz was not passed, show the "failed" modal.
+                resultIcon.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i>';
+                resultTitle.textContent = 'Quiz Not Passed';
+                resultContent.innerHTML = `
+                    <p style="font-size: 1.2rem; margin-bottom: 1rem;">Your Score: <strong style="color: #e74c3c;">${score}%</strong></p>
+                    <p>You scored ${score}%, but you need at least 80% to pass. You can retake the quiz to improve your score.</p>
+                `;
+                retakeBtn.style.display = 'inline-block';
+            }
+            
+            showModal('quizResultsModal');
+        }
+
+        async function handleSubmit(score, passed, results) {
+            // Save the result to the backend first. This will return a certificateId if it's a passed final exam.
+            const savedResult = await saveQuizResults(score, passed, results);
+
+            if (passed && currentSubject === 'final' && savedResult && savedResult.certificateId) {
+                // If it's a passed final exam, redirect immediately to the certificate page.
+                window.location.href = `certificate.html?id=${savedResult.certificateId}`;
+                return; // Stop execution to prevent the modal from showing.
+            }
+
+            // For all other cases (regular quizzes, failed final exam), show the results modal.
+            showQuizResults(score, passed, results);
+        }
+
+        function retakeQuiz() {
+            closeModal('quizResultsModal');
+            startQuiz();
+        }
+
+        function goToSubjects() {
+            window.location.href = 'subjects.html';
+        }
+        // Load quiz on page load
+        document.addEventListener('DOMContentLoaded', loadQuiz);
+    </script>
+</body>
+</html>

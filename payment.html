@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .payment-wrapper {
+            max-width: 1100px;
+            margin: 100px auto 50px;
+            padding: 2rem;
+        }
+
+        .payment-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .payment-form-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .form-group input:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .plan-card, .payment-method {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+
+        .plan-card:hover, .payment-method:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.1);
+        }
+
+        .plan-card.selected, .payment-method.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.15);
+            transform: translateY(-2px);
+        }
+
+        .plan-header h3 {
+            margin: 0 0 0.5rem 0;
+            color: #2c3e50;
+        }
+
+        .plan-price .currency {
+            font-size: 1rem;
+            color: #666;
+            margin-right: 0.25rem;
+        }
+
+        .plan-price .amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .plan-price .period {
+            font-size: 1rem;
+            color: #666;
+            margin-left: 0.25rem;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .payment-method i {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        #paymentInstructions {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            position: sticky;
+            top: 100px;
+        }
+
+        #instructionsContent ol, #instructionsContent ul {
+            padding-left: 1.5rem;
+            line-height: 1.8;
+        }
+
+        .plan-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f8f9fa;
+        }
+
+        .plan-card.disabled:hover {
+            border-color: #e9ecef;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 992px) {
+            .payment-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link login-btn">Login</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Payment Container -->
+    <div class="payment-wrapper">
+        <div class="form-header" style="margin-bottom: 3rem;">
+            <h2>Complete Your Enrollment</h2>
+            <p>Follow the steps below to unlock your full learning potential.</p>
+        </div>
+
+        <div class="payment-layout">
+            <div class="payment-form-card">
+                <form id="paymentForm">
+                    <!-- Plan Selection -->
+                    <div class="form-group">
+                        <label>Plan *</label>
+                        <div class="plans-grid" style="margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="plan-card" id="basicPlan" onclick="selectPlan('basic')">
+                                <div class="plan-header">
+                                    <h3>Basic Plan</h3>
+                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">500</span><span class="period">/month</span></div>
+                                </div>
+                                <div class="plan-features">
+                                    <ul>
+                                        <li><i class="fas fa-check"></i> Access to all subjects in two streams (Natural and Social Sciences)</li>
+                                        <li><i class="fas fa-check"></i> Full Grade 9–12 Content</li>
+                                        <li><i class="fas fa-check"></i> Quizzes and Progress Tracking</li>
+                                        <li><i class="fas fa-check"></i> Email support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="plan-card" id="advancedPlan" onclick="selectPlan('advanced')">
+                                <div class="plan-header">
+                                    <h3>Advanced Plan</h3>
+                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">800</span><span class="period">/month</span></div>
+                                </div>
+                                <div class="plan-features">
+                                    <ul>
+                                        <li><i class="fas fa-check"></i> Access to all subjects in two streams (Natural and Social Sciences)</li>
+                                        <li><i class="fas fa-check"></i> Full Grade 9–12 Content</li>
+                                        <li><i class="fas fa-check"></i> Quizzes and Progress Tracking</li>
+                                        <li><i class="fas fa-check"></i> Email support</li>
+                                        <li><i class="fas fa-check"></i> Advanced English</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="error" id="planError"></div>
+                    </div>
+
+                    <!-- Payment Method Selection -->
+                    <div class="form-group">
+                        <label>Payment Method *</label>
+                        <div class="payment-methods" style="margin-top: 1rem;">
+                            <div class="payment-method" id="telebirrMethod" onclick="selectPaymentMethod('telebirr')">
+                                <i class="fas fa-mobile-alt"></i>
+                                <h4>Telebirr</h4>
+                            </div>
+                            <div class="payment-method" id="cbeMethod" onclick="selectPaymentMethod('cbe')">
+                                <i class="fas fa-university"></i>
+                                <h4>CBE</h4>
+                            </div>
+                            <div class="payment-method" id="awashMethod" onclick="selectPaymentMethod('awash')">
+                                <i class="fas fa-university"></i>
+                                <h4>Awash Bank</h4>
+                            </div>
+                        </div>
+                        <div class="error" id="paymentMethodError"></div>
+                    </div>
+
+                    <!-- Payment Details Form -->
+                    <div id="paymentDetailsSection" style="display: none;">
+                        <div class="form-group" style="margin-top: 2rem;">
+                            <label for="email">Your Email Address</label>
+                            <input type="email" id="email" name="email" required readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                            <div class="error" id="emailError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="accountName">Account Holder Name *</label>
+                            <input type="text" id="accountName" name="accountName" required placeholder="The name on the bank/Telebirr account">
+                            <div class="error" id="accountNameError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label id="paymentIdentifierLabel" for="accountNumber">Your Phone / Account Number *</label>
+                            <input type="text" id="accountNumber" name="accountNumber" required placeholder="Enter the number you paid from">
+                            <div class="error" id="accountNumberError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <i class="fas fa-paper-plane"></i> Submit Payment Information
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Payment Instructions -->
+            <div id="paymentInstructions" style="display: none;">
+                <h3>Payment Instructions</h3>
+                <div id="instructionsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="goToLogin()">&times;</span>
+            <div style="text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 4rem; color: #27ae60; margin-bottom: 1rem;"></i>
+                <h2>Payment Submitted Successfully!</h2>
+                <p>Your payment has been submitted and is pending verification. You will receive an email confirmation once your payment is verified by our admin team.</p>
+                <p><strong>What's next?</strong></p>
+                <ul style="text-align: left; margin: 1rem 0; display: inline-block;">
+                    <li>Wait for admin verification (usually within 24 hours)</li>
+                    <li>Check your email for confirmation</li>
+                    <li>Once verified, you can login and start learning</li>
+                </ul>
+                <button class="btn btn-primary" onclick="goToLogin()">Go to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let selectedPlan = null;
+        let selectedPaymentMethod = null;
+
+        function selectPlan(plan) {
+            // Remove selected class from all plans
+            document.querySelectorAll('.plan-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked plan
+            document.getElementById(plan + 'Plan').classList.add('selected');
+            selectedPlan = plan;
+
+            // Clear plan error
+            document.getElementById('planError').textContent = '';
+            
+            // Show payment form if payment method is also selected
+            if (selectedPaymentMethod) {
+                document.getElementById('paymentDetailsSection').style.display = 'block';
+            }
+        }
+
+        function selectPaymentMethod(method) {
+            // Remove selected class from all payment methods
+            document.querySelectorAll('.payment-method').forEach(method => {
+                method.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked method
+            document.getElementById(method + 'Method').classList.add('selected');
+            selectedPaymentMethod = method;
+
+            // Clear payment method error
+            document.getElementById('paymentMethodError').textContent = '';
+            
+            // Show payment instructions
+            showPaymentInstructions(method);
+            
+            updatePaymentFormLabel(method);
+            // Show payment form if plan is also selected
+            if (selectedPlan) {
+                document.getElementById('paymentDetailsSection').style.display = 'block';
+            }
+        }
+
+        function showPaymentInstructions(method) {
+            const instructionsDiv = document.getElementById('paymentInstructions');
+            const contentDiv = document.getElementById('instructionsContent');
+            
+            let instructions = '';
+            
+            switch(method) {
+                case 'telebirr':
+                    instructions = `
+                        <p><strong>Telebirr Payment Instructions:</strong></p>
+                        <ol>
+                            <li>Open your Telebirr app</li>
+                            <li>Select "Send Money" or "Transfer"</li>
+                            <li>Account Name: <strong>Fitsum Engida Gelalte</strong></li>
+                            <li>Enter the phone number: <strong>0911419522</strong></li>
+                            <li>Enter the amount: <strong>${getPlanAmount()} ETB</strong></li>
+                            <li>In the reason field, enter your email address.</li>
+                            <li>Complete the transaction</li>
+                        </ol>
+                    `;
+                    break;
+                case 'cbe':
+                    instructions = `
+                        <p><strong>CBE Payment Instructions:</strong></p>
+                        <ol>
+                            <li>Visit any CBE branch or use CBE mobile banking</li>
+                            <li>Account Name: <strong>Fitsum Engida Gelalte</strong></li>
+                            <li>Account Number: <strong>1000300771223</strong></li>
+                            <li>Amount: <strong>${getPlanAmount()} ETB</strong></li>
+                            <li>Reference: Your email address</li>
+                            <li>Complete the transfer</li>
+                            <li>Save the transaction receipt</li>
+                        </ol>
+                    `;
+                    break;
+                case 'awash':
+                    instructions = `
+                        <p><strong>Awash Bank Payment Instructions:</strong></p>
+                        <ol>
+                            <li>Visit any Awash Bank branch or use mobile banking</li>
+                            <li>Account Name: <strong>Fitsum Engida Gelalte</strong></li>
+                            <li>Account Number: <strong>01320248472600</strong></li>
+                            <li>Amount: <strong>${getPlanAmount()} ETB</strong></li>
+                            <li>Reference: Your email address</li>
+                            <li>Complete the transfer</li>
+                            <li>Save the transaction receipt</li>
+                        </ol>
+                    `;
+                    break;
+            }
+            
+            contentDiv.innerHTML = instructions;
+            instructionsDiv.style.display = 'block';
+        }
+
+        function updatePaymentFormLabel(method) {
+            const label = document.getElementById('paymentIdentifierLabel');
+            const input = document.getElementById('accountNumber');
+            if (method === 'telebirr') {
+                label.innerHTML = 'Telebirr Phone Number *';
+                input.placeholder = 'e.g., 0911234567';
+            } else if (method === 'cbe' || method === 'awash') {
+                label.innerHTML = 'Your Bank Account Number *';
+                input.placeholder = 'The account number you sent payment from';
+            } else {
+                label.textContent = 'Phone / Account Number *';
+            }
+        }
+
+        function getPlanAmount() {
+            switch(selectedPlan) {
+                case 'basic': return '500';
+                case 'advanced': return '800';
+                case 'annual': return '8,000';
+                default: return '0';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+             // Payment form submission
+            document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Clear previous errors
+            clearErrors();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Validate form
+            let isValid = true;
+            
+            if (!selectedPlan) {
+                showError('planError', 'Please select a plan');
+                isValid = false;
+            }
+            
+            if (!selectedPaymentMethod) {
+                showError('paymentMethodError', 'Please select a payment method');
+                isValid = false;
+            }
+            
+            if (!data.accountName || data.accountName.trim().length < 2) {
+                showError('accountNameError', 'Please enter the account holder\'s name');
+                isValid = false;
+            }
+
+            if (!data.accountNumber || data.accountNumber.trim().length < 9) {
+                showError('accountNumberError', 'Please enter a valid phone or account number (at least 9 digits)');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                // Prepare payload for the backend
+                // Submit to backend
+                apiPost('/api/payments', {
+                    plan: selectedPlan,
+                    paymentMethod: selectedPaymentMethod,
+                    accountName: data.accountName,
+                    accountNumber: data.accountNumber,
+                    amount: getPlanAmount(),
+                    // transactionId and notes are optional on the backend
+                    transactionId: '', 
+                    notes: ''
+                }).then(async (res) => {
+                    const json = await res.json();
+                    if (!res.ok) throw new Error(json.error || 'Payment submit failed');
+                    // Critical fix: Remove the trial flag once payment is submitted.
+                    endTrial(); 
+
+                    localStorage.setItem('paymentData', JSON.stringify(json.payment));
+                    localStorage.setItem('verificationStatus', 'pending');
+                    showModal('successModal');
+                }).catch((err) => {
+                    showError('accountNumberError', err.message);
+                });
+            }
+            });
+            
+            function clearErrors() {
+            const errorElements = document.querySelectorAll('.error');
+            errorElements.forEach(element => {
+                element.textContent = '';
+            });
+            }
+            
+            function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.textContent = message;
+            }
+            }
+            
+            function goToLogin() {
+            // Log the user out completely and redirect to the homepage.
+            logout();
+            }
+
+            async function initializePage() {
+                // Require login (token) to submit payments
+                if (!isLoggedIn()) {
+                    window.location.href = 'login.html';
+                    return; // Stop execution if not logged in
+                }
+
+                // Populate user email
+                const user = getCurrentUser();
+                if (user && user.email) {
+                    const emailInput = document.getElementById('email');
+                    emailInput.value = user.email;
+                }
+
+                // Check if advanced plan is enabled
+                try {
+                    const res = await fetch('/api/settings/public');
+                    const data = await res.json();
+                    if (data.ok && data.settings && !data.settings.advancedPlanEnabled) {
+                        const advancedPlanCard = document.getElementById('advancedPlan');
+                        if (advancedPlanCard) {
+                            advancedPlanCard.classList.add('disabled');
+                            advancedPlanCard.onclick = null; // Remove the click handler
+                        }
+                    }
+                } catch (e) {
+                    console.error("Could not fetch plan settings, showing all plans as a fallback.");
+                }
+            }
+
+            // Make functions globally accessible for the onclick attributes in the HTML
+            window.selectPlan = selectPlan;
+            window.selectPaymentMethod = selectPaymentMethod;
+            window.goToLogin = goToLogin;
+
+            initializePage();
+        });
+    </script>
+</body>
+</html>

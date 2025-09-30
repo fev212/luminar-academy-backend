@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Schedule - Luminar School</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><a href="index.html" style="color: white; text-decoration: none;">Luminar School</a></h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="schedule.html" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="stream-selection.html" class="nav-link">Subjects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">Logout</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Schedule Container -->
+    <div class="schedule-container">
+        <div class="form-header">
+            <h2>Set Your Study Schedule</h2>
+            <p>Choose at least 3 days per week and your preferred study times. We'll send you reminders to help you stay on track.</p>
+        </div>
+
+        <!-- Days Selection -->
+        <div class="form-group">
+            <label>Select Study Days (Choose at least 3) *</label>
+            <div class="schedule-grid">
+                <div class="day-card" onclick="selectDay('monday')" id="mondayCard">
+                    <h4>Monday</h4>
+                    <p>Mon</p>
+                </div>
+                <div class="day-card" onclick="selectDay('tuesday')" id="tuesdayCard">
+                    <h4>Tuesday</h4>
+                    <p>Tue</p>
+                </div>
+                <div class="day-card" onclick="selectDay('wednesday')" id="wednesdayCard">
+                    <h4>Wednesday</h4>
+                    <p>Wed</p>
+                </div>
+                <div class="day-card" onclick="selectDay('thursday')" id="thursdayCard">
+                    <h4>Thursday</h4>
+                    <p>Thu</p>
+                </div>
+                <div class="day-card" onclick="selectDay('friday')" id="fridayCard">
+                    <h4>Friday</h4>
+                    <p>Fri</p>
+                </div>
+                <div class="day-card" onclick="selectDay('saturday')" id="saturdayCard">
+                    <h4>Saturday</h4>
+                    <p>Sat</p>
+                </div>
+                <div class="day-card" onclick="selectDay('sunday')" id="sundayCard">
+                    <h4>Sunday</h4>
+                    <p>Sun</p>
+                </div>
+            </div>
+            <div class="error" id="daysError"></div>
+        </div>
+
+        <!-- Time Slots Selection -->
+        <div class="form-group">
+            <label>Select Study Times *</label>
+            <div class="time-slots">
+                <div class="time-slot" onclick="selectTime('morning')" id="morningSlot">
+                    <i class="fas fa-sun"></i>
+                    <h4>Morning</h4>
+                    <p>6:00 AM - 12:00 PM</p>
+                </div>
+                <div class="time-slot" onclick="selectTime('afternoon')" id="afternoonSlot">
+                    <i class="fas fa-sun"></i>
+                    <h4>Afternoon</h4>
+                    <p>12:00 PM - 6:00 PM</p>
+                </div>
+                <div class="time-slot" onclick="selectTime('evening')" id="eveningSlot">
+                    <i class="fas fa-moon"></i>
+                    <h4>Evening</h4>
+                    <p>6:00 PM - 10:00 PM</p>
+                </div>
+                <div class="time-slot" onclick="selectTime('night')" id="nightSlot">
+                    <i class="fas fa-moon"></i>
+                    <h4>Night</h4>
+                    <p>10:00 PM - 12:00 AM</p>
+                </div>
+            </div>
+            <div class="error" id="timeError"></div>
+        </div>
+
+        <!-- Study Duration -->
+        <div class="form-group">
+            <label for="studyDuration">Study Duration per Session (minutes) *</label>
+            <select id="studyDuration" name="studyDuration" required>
+                <option value="">Select duration</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="90">1.5 hours</option>
+                <option value="120">2 hours</option>
+            </select>
+            <div class="error" id="durationError"></div>
+        </div>
+
+        <!-- Notification Preferences -->
+        <div class="form-group">
+            <label>Notification Preferences</label>
+            <div style="margin-top: 1rem;">
+                <label style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <input type="checkbox" id="emailNotifications" name="emailNotifications" checked>
+                    <span style="margin-left: 0.5rem;">Email notifications</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="button" class="btn btn-primary" onclick="saveSchedule()" style="width: 100%; margin-top: 2rem;">
+            <i class="fas fa-calendar-check"></i> Save Schedule
+        </button>
+
+        <!-- Current Schedule Display -->
+        <div id="currentSchedule" style="display: none; background: #f8f9fa; padding: 2rem; border-radius: 10px; margin-top: 2rem;">
+            <h3>Your Current Schedule</h3>
+            <div id="scheduleDisplay"></div>
+            <button type="button" class="btn btn-outline" onclick="editSchedule()" style="margin-top: 1rem;">
+                <i class="fas fa-edit"></i> Edit Schedule
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('successModal')">&times;</span>
+            <div style="text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 4rem; color: #27ae60; margin-bottom: 1rem;"></i>
+                <h2>Schedule Saved Successfully!</h2>
+                <p>Your study schedule has been saved. We'll send you reminders based on your selected times.</p>
+                <p><strong>What's next?</strong></p>
+                <ul style="text-align: left; margin: 1rem 0;">
+                    <li>You'll receive notifications before your study time</li>
+                    <li>Track your study sessions in your dashboard</li>
+                    <li>You can always modify your schedule later</li>
+                </ul>
+                <button class="btn btn-primary" onclick="goToStreamSelection()">Continue to Subject Selection</button>
+                <button class="btn btn-outline" onclick="goToDashboard()">Go to Dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let selectedDays = [];
+        let selectedTimes = [];
+        let isEditing = false;
+
+        function selectDay(day) {
+            const dayCard = document.getElementById(day + 'Card');
+            
+            if (selectedDays.includes(day)) {
+                // Remove day
+                selectedDays = selectedDays.filter(d => d !== day);
+                dayCard.classList.remove('selected');
+            } else {
+                // Add day
+                selectedDays.push(day);
+                dayCard.classList.add('selected');
+            }
+            
+            // Clear error
+            document.getElementById('daysError').textContent = '';
+        }
+
+        function selectTime(time) {
+            const timeSlot = document.getElementById(time + 'Slot');
+            
+            if (selectedTimes.includes(time)) {
+                // Remove time
+                selectedTimes = selectedTimes.filter(t => t !== time);
+                timeSlot.classList.remove('selected');
+            } else {
+                // Add time
+                selectedTimes.push(time);
+                timeSlot.classList.add('selected');
+            }
+            
+            // Clear error
+            document.getElementById('timeError').textContent = '';
+        }
+
+        function saveSchedule() {
+            // Clear previous errors
+            clearErrors();
+            
+            // Validate form
+            let isValid = true;
+            
+            if (selectedDays.length < 3) {
+                showError('daysError', 'Please select at least 3 days');
+                isValid = false;
+            }
+            
+            if (selectedTimes.length === 0) {
+                showError('timeError', 'Please select at least one time slot');
+                isValid = false;
+            }
+            
+            const studyDuration = document.getElementById('studyDuration').value;
+            if (!studyDuration) {
+                showError('durationError', 'Please select study duration');
+                isValid = false;
+            }
+            
+            if (isValid) { // This block will be replaced with an async call
+                // Get notification preferences
+                const emailNotifications = document.getElementById('emailNotifications').checked;
+                
+                // Create schedule data
+                const schedulePayload = {
+                    days: selectedDays,
+                    times: selectedTimes,
+                    duration: parseInt(studyDuration, 10),
+                    notifications: {
+                        email: emailNotifications
+                    }
+                };
+                
+                // Save to backend
+                apiPost('/api/schedule', schedulePayload)
+                    .then(async (res) => {
+                        if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.error || 'Failed to save schedule.');
+                        }
+                        showModal('successModal');
+                    })
+                    .catch(err => {
+                        alert('Error: ' + err.message);
+                    });
+
+                // Add activity
+                addActivity('schedule_set', 'Study Schedule Set', 'You have set up your study schedule');
+            }
+        }
+
+        async function editSchedule() {
+            isEditing = true;
+            document.getElementById('currentSchedule').style.display = 'none';
+            document.querySelector('.form-header').style.display = 'block';
+            // Load existing schedule
+            const user = await syncAndGetCurrentUser();
+            if (user && user.schedule) {
+                const scheduleData = user.schedule;
+                // Select days
+                selectedDays = scheduleData.days || [];
+                selectedDays.forEach(day => {
+                    document.getElementById(day + 'Card').classList.add('selected');
+                });
+                
+                // Select times
+                selectedTimes = scheduleData.times || [];
+                selectedTimes.forEach(time => {
+                    document.getElementById(time + 'Slot').classList.add('selected');
+                });
+                
+                // Set duration
+                document.getElementById('studyDuration').value = scheduleData.duration || '';
+                
+                // Set notifications
+                if (scheduleData.notifications) {
+                    document.getElementById('emailNotifications').checked = scheduleData.notifications.email;
+                }
+            }
+        }
+
+        async function loadCurrentSchedule() {
+            const user = await syncAndGetCurrentUser();
+            if (!user) return;
+
+            const scheduleData = user.schedule;
+
+            if (scheduleData) {
+                // Show current schedule
+                document.getElementById('currentSchedule').style.display = 'block';
+
+                // Hide the form
+                document.querySelector('.form-header').style.display = 'none';
+
+                // Display schedule
+                const scheduleDisplay = document.getElementById('scheduleDisplay');
+                const daysText = scheduleData.days.map(day => day.charAt(0).toUpperCase() + day.slice(1)).join(', ');
+                const timesText = scheduleData.times.map(time => {
+                    const timeMap = {
+                        'morning': '6:00 AM - 12:00 PM',
+                        'afternoon': '12:00 PM - 6:00 PM',
+                        'evening': '6:00 PM - 10:00 PM',
+                        'night': '10:00 PM - 12:00 AM'
+                    };
+                    return timeMap[time] || time;
+                }).join(', ');
+                
+                scheduleDisplay.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Study Days:</strong> ${daysText}
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Study Times:</strong> ${timesText}
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Duration per Session:</strong> ${scheduleData.duration} minutes
+                    </div>
+                    <div>
+                        <strong>Notifications:</strong> 
+                        ${scheduleData.notifications && scheduleData.notifications.email ? 'Email Reminders Enabled' : 'Email Reminders Disabled'}
+                    </div>
+                `;
+            }
+        }
+
+        function clearErrors() {
+            const errorElements = document.querySelectorAll('.error');
+            errorElements.forEach(element => {
+                element.textContent = '';
+            });
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.textContent = message;
+            }
+        }
+
+        function goToStreamSelection() {
+            closeModal('successModal');
+            window.location.href = 'stream-selection.html';
+        }
+
+        function goToDashboard() {
+            closeModal('successModal');
+            window.location.href = 'dashboard.html';
+        }
+
+        // Mobile menu handled globally in script.js
+
+        // Check if user is logged in
+        if (!isLoggedIn()) {
+            window.location.href = 'login.html';
+        }
+
+        // Load current schedule on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurrentSchedule();
+        });
+    </script>
+</body>
+</html>
