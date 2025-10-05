@@ -1,30 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">// --- Seed admin ---
-    async function seedAdmin() {
-        const adminEmail = 'admin@luminarschool.com';
-        const adminPassword = 'admin123';
-        const passwordHash = bcrypt.hashSync(adminPassword, BCRYPT_ROUNDS);
-    
-        // Use findOneAndUpdate with upsert to either create or update the admin user
-        await User.findOneAndUpdate(
-            { email: adminEmail },
-            {
-                $set: {
-                    role: 'admin',
-                    fullName: 'Site Admin',
-                    schoolName: 'N/A',
-                    passwordHash: passwordHash,
-                    verified: true
-                }
-            },
-            { upsert: true, new: true } // upsert: create if not found; new: return updated doc
-        );
-        console.log(`Admin user '' ensured to be up to date.`);
-        // ...
-    }
-    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subjects - Luminar School</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">

@@ -172,7 +172,7 @@
                             <div class="plan-card" id="basicPlan" onclick="selectPlan('basic')">
                                 <div class="plan-header">
                                     <h3>Basic Plan</h3>
-                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">500</span><span class="period">/month</span></div>
+                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">1000</span><span class="period">/month</span></div>
                                 </div>
                                 <div class="plan-features">
                                     <ul>
@@ -186,7 +186,7 @@
                             <div class="plan-card" id="advancedPlan" onclick="selectPlan('advanced')">
                                 <div class="plan-header">
                                     <h3>Advanced Plan</h3>
-                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">800</span><span class="period">/month</span></div>
+                                    <div class="plan-price"><span class="currency">ETB</span><span class="amount">2000</span><span class="period">/month</span></div>
                                 </div>
                                 <div class="plan-features">
                                     <ul>
@@ -396,8 +396,8 @@
 
         function getPlanAmount() {
             switch(selectedPlan) {
-                case 'basic': return '500';
-                case 'advanced': return '800';
+                case 'basic': return '1000';
+                case 'advanced': return '2000';
                 case 'annual': return '8,000';
                 default: return '0';
             }

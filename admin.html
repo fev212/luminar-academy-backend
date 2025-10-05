@@ -82,14 +82,14 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div class="grid-2-col" style="margin-top: 2rem;">
+                    <div class="card">
                         <h3>Recent Users</h3>
                         <div id="recentUsers">
                             <!-- Recent users will be loaded here -->
                         </div>
                     </div>
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="card">
                         <h3>Recent Payments</h3>
                         <div id="recentPayments">
                             <!-- Recent payments will be loaded here -->
@@ -106,7 +106,7 @@
                         <i class="fas fa-sync"></i> Refresh
                     </button>
                 </div>
-                <div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div class="table-responsive-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -136,7 +136,7 @@
                         <i class="fas fa-sync"></i> Refresh
                     </button>
                 </div>
-                <div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div class="table-responsive-wrapper">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -164,8 +164,8 @@
             <!-- Content Section -->
             <div id="contentSection" class="admin-section" style="display: none;">
                 <h2>Content Management</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div class="grid-2-col">
+                    <div class="card">
                         <h3>Upload Course Material</h3>
                         <form id="contentUploadForm" enctype="multipart/form-data">
                             <div class="form-group">
@@ -214,7 +214,7 @@
                             </button>
                         </form>
                     </div>
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="card">
                         <h3>Add Quiz Questions</h3>
                         <form id="quizUploadForm">
                             <div class="form-group">
@@ -267,7 +267,7 @@
                             </button>
                         </form>
                     </div>
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="card">
                         <h3>Add Final Exam Question</h3>
                         <form id="finalExamUploadForm">
                             <div class="form-group">
@@ -299,20 +299,20 @@
             <!-- Reports Section -->
             <div id="reportsSection" class="admin-section" style="display: none;">
                 <h2>Reports & Analytics</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div class="grid-2-col">
+                    <div class="card">
                         <h3>User Statistics</h3>
                         <div id="userStats">
                             <!-- User statistics will be loaded here -->
                         </div>
                     </div>
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="card">
                         <h3>Payment Statistics</h3>
                         <div id="paymentStats">
                             <!-- Payment statistics will be loaded here -->
                         </div>
                     </div>
-                    <div style="background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div class="card">
                         <h3>Learning Progress</h3>
                         <div id="learningStats">
                             <!-- Learning statistics will be loaded here -->
@@ -403,28 +403,28 @@
 
             const recentUsers = document.getElementById('recentUsers');
             recentUsers.innerHTML = users.slice(-5).map(u => `
-                <div style="padding: 1rem; border-bottom: 1px solid #e9ecef;">
-                    <div style="display: flex; justify-content: space-between;">
+                <div class="recent-item">
+                    <div class="recent-item-content">
                         <div>
                             <strong>${u.fullName}</strong>
-                            <p style="margin: 0; color: #666; font-size: 0.9rem;">${u.email}</p>
+                            <p class="recent-item-subtext">${u.email}</p>
                         </div>
-                        <span style="color: ${u.verified ? '#27ae60' : '#f39c12'}; font-size: 0.9rem;">${u.verified ? 'Verified' : 'Pending'}</span>
+                        <span class="recent-item-status ${u.verified ? 'verified' : 'pending'}">${u.verified ? 'Verified' : 'Pending'}</span>
                     </div>
                 </div>
             `).join('') || '<p style="text-align: center; color: #666;">No users found</p>';
 
             const recentPayments = document.getElementById('recentPayments');
             recentPayments.innerHTML = payments.slice(-5).map(p => `
-                <div style="padding: 1rem; border-bottom: 1px solid #e9ecef;">
-                    <div style="display: flex; justify-content: space-between;">
+                <div class="recent-item">
+                    <div class="recent-item-content">
                         <div>
                             <strong>${p.plan} Plan</strong>
-                            <p style="margin: 0; color: #666; font-size: 0.9rem;">${p.paymentMethod}</p>
+                            <p class="recent-item-subtext">${p.paymentMethod}</p>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="color: #333; font-weight: bold;">${p.amount} ETB</div>
-                            <span style="color: ${p.status === 'pending' ? '#f39c12' : '#27ae60'}; font-size: 0.9rem;">${p.status}</span>
+                        <div class="recent-item-details">
+                            <div class="recent-item-amount">${p.amount} ETB</div>
+                            <span class="recent-item-status ${p.status}">${p.status}</span>
                         </div>
                     </div>
                 </div>
@@ -440,12 +440,12 @@
             if (users.length) {
                 usersTable.innerHTML = users.map(u => `
                     <tr>
-                        <td>${u.fullName}</td>
-                        <td>${u.email}</td>
-                        <td>${u.schoolName || 'N/A'}</td>
-                        <td><span class="unit-status ${u.paymentStatus === 'approved' ? 'completed' : u.paymentStatus === 'pending' ? 'in-progress' : 'not-started'}">${u.paymentStatus || 'none'}</span></td>
-                        <td>${new Date(u.createdAt || Date.now()).toLocaleDateString()}</td>
-                        <td>
+                        <td data-label="Name">${u.fullName}</td>
+                        <td data-label="Email">${u.email}</td>
+                        <td data-label="School">${u.schoolName || 'N/A'}</td>
+                        <td data-label="Status"><span class="unit-status ${u.paymentStatus === 'approved' ? 'completed' : u.paymentStatus === 'pending' ? 'in-progress' : 'not-started'}">${u.paymentStatus || 'none'}</span></td>
+                        <td data-label="Registered">${new Date(u.createdAt || Date.now()).toLocaleDateString()}</td>
+                        <td data-label="Actions">
                             <button class="btn btn-outline" onclick="verifyUser('${u._id || u.id}')" ${u.verified ? 'disabled' : ''}>
                                 <i class="fas fa-check"></i> Verify
                             </button>
@@ -467,19 +467,19 @@
             if (payments.length) {
                 paymentsTable.innerHTML = payments.map(p => `
                     <tr>
-                        <td>${p.accountName || 'N/A'}</td>
-                        <td>${p.plan}</td>
-                        <td>${p.amount} ETB</td>
-                        <td>${p.paymentMethod}</td>
-                        <td><span class="unit-status ${p.status === 'pending' ? 'in-progress' : p.status === 'rejected' ? 'not-started' : 'completed'}">${p.status}</span></td>
-                        <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
-                        <td>${p.accountNumber || 'N/A'}</td>
-                        <td>${p.transactionId || 'N/A'}</td>
-                        <td>
+                        <td data-label="Account Name">${p.accountName || 'N/A'}</td>
+                        <td data-label="Plan">${p.plan}</td>
+                        <td data-label="Amount">${p.amount} ETB</td>
+                        <td data-label="Method">${p.paymentMethod}</td>
+                        <td data-label="Status"><span class="unit-status ${p.status === 'pending' ? 'in-progress' : p.status === 'rejected' ? 'not-started' : 'completed'}">${p.status}</span></td>
+                        <td data-label="Date">${new Date(p.paymentDate).toLocaleDateString()}</td>
+                        <td data-label="Account Number">${p.accountNumber || 'N/A'}</td>
+                        <td data-label="Transaction ID">${p.transactionId || 'N/A'}</td>
+                        <td data-label="Actions">
                             <button class="btn btn-primary" onclick="verifyPayment('${p._id || p.id}')" ${p.status !== 'pending' ? 'disabled' : ''}>
                                 <i class="fas fa-check"></i> Verify
                             </button>
-                            <button class="btn btn-outline" style="border-color: #e74c3c; color: #e74c3c;" onclick="rejectPayment('${p._id || p.id}')" ${p.status !== 'pending' ? 'disabled' : ''}>
+                            <button class="btn btn-danger" onclick="rejectPayment('${p._id || p.id}')" ${p.status !== 'pending' ? 'disabled' : ''}>
                                 <i class="fas fa-times"></i> Reject
                             </button>
                         </td>
@@ -638,22 +638,22 @@
             // User Stats
             const userStats = document.getElementById('userStats');
             userStats.innerHTML = `
-                <div style="margin-bottom: 1rem;"><strong>Total Users:</strong> ${users.length}</div>
-                <div style="margin-bottom: 1rem;"><strong>Verified Users:</strong> ${users.filter(u => u.verified).length}</div>
+                <div class="report-stat-item"><strong>Total Users:</strong> <span>${users.length}</span></div>
+                <div class="report-stat-item"><strong>Verified Users:</strong> <span>${users.filter(u => u.verified).length}</span></div>
             `;
 
             // Payment Stats
             const paymentStats = document.getElementById('paymentStats');
             const totalRevenue = payments.filter(p => p.status === 'verified').reduce((sum, p) => sum + (parseInt((p.amount || '0').replace(/[^\d]/g, '')) || 0), 0);
             paymentStats.innerHTML = `
-                <div style="margin-bottom: 1rem;"><strong>Total Payments:</strong> ${payments.length}</div>
-                <div style="margin-bottom: 1rem;"><strong>Pending Payments:</strong> ${payments.filter(p => p.status === 'pending').length}</div>
-                <div style="margin-bottom: 1rem;"><strong>Total Revenue:</strong> ${totalRevenue} ETB</div>
+                <div class="report-stat-item"><strong>Total Payments:</strong> <span>${payments.length}</span></div>
+                <div class="report-stat-item"><strong>Pending Payments:</strong> <span>${payments.filter(p => p.status === 'pending').length}</span></div>
+                <div class="report-stat-item"><strong>Total Revenue:</strong> <span>${totalRevenue} ETB</span></div>
             `;
 
             // Learning Stats (Placeholder)
             const learningStats = document.getElementById('learningStats');
-            learningStats.innerHTML = `<p>Learning progress analytics are under development.</p>`;
+            learningStats.innerHTML = `<p class="text-center" style="color: #666;">Learning progress analytics are under development.</p>`;
         }
 
         // Content upload form
