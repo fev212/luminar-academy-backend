@@ -555,6 +555,50 @@ app.post('/api/activity', auth, async (req, res) => {
     res.json({ ok: true });
 });
 
+app.get('/api/user/progress-summary', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).lean();
+        if (!user || !user.stream) {
+            return res.json({ ok: true, progressSummary: {} });
+        }
+
+        // Fetch all content units for the user's stream to get total unit counts per grade/subject
+        const allContent = await CourseContent.find({}).lean();
+        const unitCounts = allContent.reduce((acc, content) => {
+            const key = `${content.subject}-${content.grade}`;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Calculate completed units from user's progress
+        const userProgress = user.progress || [];
+        const completedCounts = userProgress.reduce((acc, p) => {
+            if (p.percentage === 100) {
+                const key = `${p.subject}-${p.grade}`;
+                acc[key] = (acc[key] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        // Combine the data into a summary object
+        const progressSummary = {};
+        for (const key in unitCounts) {
+            const [subject, grade] = key.split('-');
+            if (!progressSummary[subject]) {
+                progressSummary[subject] = {};
+            }
+            progressSummary[subject][grade] = {
+                completed: completedCounts[key] || 0,
+                total: unitCounts[key] || 0
+            };
+        }
+
+        res.json({ ok: true, progressSummary });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get progress summary' });
+    }
+});
+
 app.post('/api/quiz-results', auth, async (req, res) => {
     const { subject, grade, unit, score, passed } = req.body;
     const result = { subject, grade, unit, score, passed, date: new Date() };
