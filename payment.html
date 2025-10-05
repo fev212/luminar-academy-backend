@@ -167,8 +167,8 @@
                 <form id="paymentForm">
                     <!-- Plan Selection -->
                     <div class="form-group">
-                        <label>Plan *</label>
-                        <div class="plans-grid" style="margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <label>1. Select Your Plan *</label>
+                        <div class="plans-grid" style="margin-top: 1rem;">
                             <div class="plan-card" id="basicPlan" onclick="selectPlan('basic')">
                                 <div class="plan-header">
                                     <h3>Basic Plan</h3>
@@ -204,7 +204,7 @@
 
                     <!-- Payment Method Selection -->
                     <div class="form-group">
-                        <label>Payment Method *</label>
+                        <label>2. Select Payment Method *</label>
                         <div class="payment-methods" style="margin-top: 1rem;">
                             <div class="payment-method" id="telebirrMethod" onclick="selectPaymentMethod('telebirr')">
                                 <i class="fas fa-mobile-alt"></i>
@@ -224,7 +224,7 @@
 
                     <!-- Payment Details Form -->
                     <div id="paymentDetailsSection" style="display: none;">
-                        <div class="form-group" style="margin-top: 2rem;">
+                        <div class="form-group" style="margin-top: 2rem; border-top: 2px solid #f0f4ff; padding-top: 2rem;">
                             <label for="email">Your Email Address</label>
                             <input type="email" id="email" name="email" required readonly style="background-color: #e9ecef; cursor: not-allowed;">
                             <div class="error" id="emailError"></div>
