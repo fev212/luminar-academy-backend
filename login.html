@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Luminar School</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -103,6 +104,7 @@
             // Get form data
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
             
             // Validate form
             let isValid = true;
@@ -121,17 +123,25 @@
             }
             
             if (isValid) {
+                // Clear stale user data from cache before logging in.
+                // This forces the next page to fetch fresh data from the server.
+                localStorage.removeItem('currentUser');
+
                 // Call backend login
                 apiPost('/api/login', { email, password })
                   .then(async (res) => {
                     const data = await res.json();
+                    // End any active trial session upon successful login
+                    endTrial();
+
                     if (!res.ok) throw new Error(data.error || 'Login failed');
                     if (data && data.token) setAuthToken(data.token);
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('currentUser', JSON.stringify(data.user));
-                    localStorage.setItem('token', data.token);
+
+                    // Use localStorage for "Remember Me" functionality
+                    const storage = rememberMe ? localStorage : sessionStorage;
                     
-                    console.log('Login successful, user data:', data.user);
+                    // Clear any previous session data from both storages
+                    clearSessionData();
                     
                     // Check if user is admin
                     if (data.user.role === 'admin') {
@@ -140,12 +150,28 @@
                         window.location.href = 'admin.html';
                     } else {
                         // Regular user - check verification
-                        console.log('Regular user, verified status:', data.user.verified);
                         if (data.user.paymentStatus !== 'approved') {
-                            window.location.href = 'enrollment-status.html';
+                            let alertMessage = '';
+                            switch (data.user.paymentStatus) {
+                                case 'pending':
+                                    alertMessage = 'Your account is waiting for admin approval. Please check back later.';
+                                    break;
+                                case 'rejected':
+                                    alertMessage = 'Your payment was rejected. Please go to the payment page to try again or contact support.';
+                                    break;
+                                default: // 'none'
+                                    alertMessage = 'Your enrollment is not yet complete. Please proceed to the payment page to activate your account.';
+                                    break;
+                            }
+                            alert(alertMessage);
                             return;
                         }
-                        console.log('User verified, redirecting to dashboard');
+
+                        // If approved, proceed to dashboard
+                        // Only set login status and user data upon successful, approved login
+                        storage.setItem('isLoggedIn', 'true');
+                        storage.setItem('currentUser', JSON.stringify(data.user));
+                        storage.setItem('authToken', data.token); // Use 'authToken' to be consistent
                         window.location.href = 'dashboard.html';
                     }
                   })
@@ -154,6 +180,13 @@
                   });
             }
         });
+
+        function clearSessionData() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('authToken');
+            sessionStorage.clear();
+        }
         
         // Admin login form
         document.getElementById('adminLoginForm').addEventListener('submit', function(e) {

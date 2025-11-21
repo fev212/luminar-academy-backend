@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Luminar School</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Add CKEditor for rich text editing -->
@@ -164,24 +165,13 @@
             <!-- Content Section -->
             <div id="contentSection" class="admin-section" style="display: none;">
                 <h2>Content Management</h2>
-                <div class="grid-2-col">
+                <div class="grid-3-col">
                     <div class="card">
                         <h3>Upload Course Material</h3>
                         <form id="contentUploadForm" enctype="multipart/form-data">
                             <div class="form-group">
                                 <label for="subject">Subject</label>
-                                <select id="subject" name="subject" required>
-                                    <option value="">Select Subject</option>
-                                    <option value="physics">Physics</option>
-                                    <option value="chemistry">Chemistry</option>
-                                    <option value="biology">Biology</option>
-                                    <option value="mathematics">Mathematics</option>
-                                    <option value="english">English</option>
-                                    <option value="history">History</option>
-                                    <option value="geography">Geography</option>
-                                    <option value="economics">Economics</option>
-                                    <option value="english_advanced">Advanced English</option>
-                                </select>
+                                <select id="subject" name="subject" required></select>
                             </div>
                             <div class="form-group" id="gradeGroup">
                                 <label for="grade">Grade</label>
@@ -219,18 +209,7 @@
                         <form id="quizUploadForm">
                             <div class="form-group">
                                 <label for="quizSubject">Subject</label>
-                                <select id="quizSubject" name="quizSubject" required>
-                                    <option value="">Select Subject</option>
-                                    <option value="physics">Physics</option>
-                                    <option value="chemistry">Chemistry</option>
-                                    <option value="biology">Biology</option>
-                                    <option value="mathematics">Mathematics</option>
-                                    <option value="english">English</option>
-                                    <option value="history">History</option>
-                                    <option value="geography">Geography</option>
-                                    <option value="economics">Economics</option>
-                                    <option value="english_advanced">Advanced English</option>
-                                </select>
+                                <select id="quizSubject" name="quizSubject" required></select>
                             </div>
                             <div class="form-group">
                                 <label for="quizGrade" id="quizGradeLabel">Grade</label>
@@ -293,6 +272,21 @@
                             <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Final Exam Question</button>
                         </form>
                     </div>
+                    <div class="card">
+                        <h3>Bulk Upload Quiz Questions</h3>
+                        <p>Upload a JSON file with multiple questions. See the example format below.</p>
+                        <form id="bulkQuizUploadForm">
+                            <div class="form-group">
+                                <label for="bulkQuizFile">Quiz JSON File</label>
+                                <input type="file" id="bulkQuizFile" name="bulkQuizFile" accept=".json" required class="file-input">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-file-upload"></i> Upload Questions
+                            </button>
+                        </form>
+                        <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">Example format: An array of question objects. Each object needs subject, grade, unit, question, options (array), and answer (0-indexed).</p>
+                        <a href="#" onclick="showJsonExample(event)">Show Example JSON</a>
+                    </div>
                 </div>
             </div>
 
@@ -343,6 +337,26 @@
 
     <script src="script.js"></script>
     <script>
+        const subjectsList = [
+            { id: 'physics', name: 'Physics' },
+            { id: 'chemistry', name: 'Chemistry' },
+            { id: 'biology', name: 'Biology' },
+            { id: 'mathematics', name: 'Mathematics' },
+            { id: 'english', name: 'English' },
+            { id: 'history', name: 'History' },
+            { id: 'geography', name: 'Geography' },
+            { id: 'economics', name: 'Economics' },
+            { id: 'english_advanced', name: 'Advanced English' }
+        ];
+
+        function populateSubjectDropdowns() {
+            const subjectSelects = [document.getElementById('subject'), document.getElementById('quizSubject')];
+            subjectSelects.forEach(select => {
+                if (!select) return;
+                select.innerHTML = '<option value="">Select Subject</option>' + subjectsList.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            });
+        }
+
         function showSection(e, sectionName) {
             // Hide all sections
             document.querySelectorAll('.admin-section').forEach(section => {
@@ -524,58 +538,33 @@
             }
         }
 
-        function verifyUser(userId) {
-            if (confirm('Are you sure you want to verify this user?')) {
-                apiPost(`/api/admin/users/${userId}/verify`, {})
-                  .then(async (res) => {
+        async function handleApiAction(confirmMessage, url, successMessage, failureMessage, successCallback) {
+            if (confirm(confirmMessage)) {
+                try {
+                    const res = await apiPost(url, {});
                     if (!res.ok) {
                         const error = await res.json();
-                        throw new Error(error.error || 'Failed');
+                        throw new Error(error.error || 'API request failed');
                     }
-                    alert('User verified successfully!');
-                    loadUsersData();
-                  })
-                  .catch((err) => {
-                    console.error('Verify user error:', err);
-                    alert('Verify failed: ' + err.message);
-                  });
+                    alert(successMessage);
+                    if (successCallback) successCallback();
+                } catch (err) {
+                    console.error(`${failureMessage} error:`, err);
+                    alert(`${failureMessage} failed: ` + err.message);
+                }
             }
+        }
+
+        function verifyUser(userId) {
+            handleApiAction('Are you sure you want to verify this user?', `/api/admin/users/${userId}/verify`, 'User verified successfully!', 'Verify user', loadUsersData);
         }
 
         function verifyPayment(paymentId) {
-            if (confirm('Are you sure you want to verify this payment?')) {
-                apiPost(`/api/admin/payments/${paymentId}/verify`, {})
-                  .then(async (res) => {
-                    if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.error || 'Failed');
-                    }
-                    alert('Payment verified successfully!');
-                    loadPaymentsData();
-                  })
-                  .catch((err) => {
-                    console.error('Verify payment error:', err);
-                    alert('Verify failed: ' + err.message);
-                  });
-            }
+            handleApiAction('Are you sure you want to verify this payment?', `/api/admin/payments/${paymentId}/verify`, 'Payment verified successfully!', 'Verify payment', loadPaymentsData);
         }
 
         function rejectPayment(paymentId) {
-            if (confirm('Are you sure you want to reject this payment?')) {
-                apiPost(`/api/admin/payments/${paymentId}/reject`, {})
-                  .then(async (res) => {
-                    if (!res.ok) {
-                        const error = await res.json();
-                        throw new Error(error.error || 'Failed');
-                    }
-                    alert('Payment rejected successfully!');
-                    loadPaymentsData();
-                  })
-                  .catch((err) => {
-                    console.error('Reject payment error:', err);
-                    alert('Reject failed: ' + err.message);
-                  });
-            }
+            handleApiAction('Are you sure you want to reject this payment?', `/api/admin/payments/${paymentId}/reject`, 'Payment rejected successfully!', 'Reject payment', loadPaymentsData);
         }
 
         function refreshUsers() {
@@ -768,8 +757,49 @@
                 });
         });
 
+        // Bulk Quiz upload form
+        document.getElementById('bulkQuizUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('bulkQuizFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a JSON file to upload.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const questions = JSON.parse(event.target.result);
+                    if (!Array.isArray(questions) || questions.length === 0) {
+                        throw new Error('JSON file must contain an array of at least one question object.');
+                    }
+
+                    // Post the array of questions to the new bulk endpoint
+                    apiPost('/api/admin/quiz/bulk', questions)
+                        .then(async res => {
+                            const data = await res.json();
+                            if (!res.ok) {
+                                throw new Error(data.error || 'Failed to upload questions.');
+                            }
+                            alert(data.message || 'Questions uploaded successfully!');
+                            fileInput.value = ''; // Reset file input
+                        })
+                        .catch(err => alert('Upload Error: ' + err.message));
+
+                } catch (err) {
+                    alert('Error parsing JSON file: ' + err.message);
+                }
+            };
+            reader.onerror = () => alert('Error reading file.');
+            reader.readAsText(file);
+        });
+
         function logout() {
             localStorage.removeItem('isAdminLoggedIn');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('authToken'); // Also remove the token
             window.location.href = 'index.html';
         }
 
@@ -784,9 +814,35 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboardData();
 
+            populateSubjectDropdowns();
             // Initialize CKEditor on the content textarea
             CKEDITOR.replace('content');
         });
+
+        function showJsonExample(event) {
+            event.preventDefault();
+            const example = `[
+  {
+    "subject": "physics",
+    "grade": 9,
+    "unit": 1,
+    "question": "What is the SI unit of force?",
+    "options": ["Joule", "Watt", "Newton", "Pascal"],
+    "answer": 2,
+    "explanation": "The SI unit of force is the Newton (N)."
+  },
+  {
+    "subject": "chemistry",
+    "grade": 10,
+    "unit": 2,
+    "question": "What is the chemical formula for water?",
+    "options": ["CO2", "H2O", "O2", "NaCl"],
+    "answer": 1,
+    "explanation": "The chemical formula for water is H2O, representing two hydrogen atoms and one oxygen atom."
+  }
+]`;
+            alert("Your JSON file content should look like this:\n\n" + example);
+        }
     </script>
 </body>
 </html>

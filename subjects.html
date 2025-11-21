@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subjects - Luminar School</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -340,6 +341,9 @@
 
         async function displaySubjects(user) {
             const subjectsGrid = document.getElementById('subjectsGrid');
+            const progressSummaryRes = await apiGet('/api/user/progress-summary');
+            const progressSummaryData = await progressSummaryRes.json();
+            const progressSummary = progressSummaryData.progressSummary || {};
             const streamSubjects = subjects[currentStream];
 
             const trialActive = localStorage.getItem('trialActive') === 'true';
@@ -356,8 +360,7 @@
             });
 
             const subjectCardPromises = filteredStreamSubjects.map(async subject => {
-                // Restrict "Advanced English" to users with an advanced plan or advanced trial.
-                const progress = await calculateSubjectProgress(subject.id, user);
+                const progress = calculateSubjectProgress(subject.id, progressSummary);
                 const hasAccess = (user && user.paymentStatus === 'approved') || trialActive;
                 
                 return `
@@ -385,15 +388,10 @@
                         ${ subject.id === 'english_advanced' ? '' : `
                             <div class="subject-grades">
                                 ${(await Promise.all(subject.grades.map(async grade => {
-                                    // Fetch total units to accurately determine completion status for the bubble.
-                                    const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
-                                    const data = await res.json();
-                                    const totalUnitsInGrade = data.units ? data.units.length : 1; // Avoid division by zero
-
-                                    const completedUnitsInGrade = user ? user.progress.filter(p => p.subject === subject.id && p.grade === grade && p.percentage === 100).length : 0;
-                                    const startedUnitsInGrade = user ? user.progress.filter(p => p.subject === subject.id && p.grade === grade).length : 0;
+                                    const gradeData = progressSummary[subject.id]?.[grade] || { completed: 0, total: 0 };
+                                    const startedUnitsInGrade = user?.progress.some(p => p.subject === subject.id && p.grade === grade);
                                     
-                                    const isCompleted = completedUnitsInGrade >= totalUnitsInGrade && totalUnitsInGrade > 0;
+                                    const isCompleted = gradeData.completed >= gradeData.total && gradeData.total > 0;
                                     const isInProgress = startedUnitsInGrade > 0 && !isCompleted;
                                     const statusClass = isCompleted ? 'completed' : isInProgress ? 'in-progress' : 'not-started';
 
@@ -421,38 +419,29 @@
             subjectsGrid.innerHTML = (await Promise.all(subjectCardPromises)).join('');
         }
 
-        async function calculateSubjectProgress(subjectId, user) {
+        function calculateSubjectProgress(subjectId, progressSummary) {
             const subject = subjects[currentStream]?.find(s => s.id === subjectId);
-            if (!subject || !user || !user.progress) return 0; // Return 0 for trial users or if no progress
+            if (!subject || !progressSummary || !progressSummary[subjectId]) return 0;
 
-            // For "Advanced English", calculate progress based on its single set of units (grade 0)
-            if (subject.id === 'english_advanced') {
-                const res = await apiGet(`/api/courses/${subject.id}/0`);
-                const data = await res.json();
-                const totalUnits = data.units ? data.units.length : 0;
-                if (totalUnits === 0) return 0;
-                const completedUnits = user.progress.filter(p => p.subject === subjectId && p.grade === 0 && p.percentage === 100).length;
-                return Math.round((completedUnits / totalUnits) * 100);
+            const subjectData = progressSummary[subjectId];
+            let totalCompleted = 0;
+            let totalUnits = 0;
+
+            for (const grade in subjectData) {
+                totalCompleted += subjectData[grade].completed;
+                totalUnits += subjectData[grade].total;
             }
 
-            const gradeProgresses = await Promise.all(subject.grades.map(async (grade) => {
-                const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
-                const data = await res.json();
-                const totalUnitsInGrade = data.units ? data.units.length : 0;
-                if (totalUnitsInGrade === 0) return 0;
-
-                const completedUnits = user.progress.filter(p => 
-                    p.subject === subjectId && p.grade === grade && p.percentage === 100
-                ).length;
-                return (completedUnits / totalUnitsInGrade) * 100;
-            }));
-
-            if (gradeProgresses.length === 0) return 0;
-            return Math.round(gradeProgresses.reduce((a, b) => a + b, 0) / gradeProgresses.length);
+            if (totalUnits === 0) return 0;
+            return Math.round((totalCompleted / totalUnits) * 100);
         }
 
         async function updateOverallProgress(user) {
             const streamSubjects = subjects[currentStream] || [];
+            const progressSummaryRes = await apiGet('/api/user/progress-summary');
+            const progressSummaryData = await progressSummaryRes.json();
+            const progressSummary = progressSummaryData.progressSummary || {};
+
             const trialActive = localStorage.getItem('trialActive') === 'true';
             const trialPlan = localStorage.getItem('trialPlan');
             const hasAdvancedPlan = user && user.plan === 'advanced' && user.paymentStatus === 'approved';
@@ -466,8 +455,7 @@
             });
 
             let totalProgress = 0;
-            const progressPromises = visibleSubjects.map(subject => calculateSubjectProgress(subject.id, user));
-            const allProgresses = await Promise.all(progressPromises);
+            const allProgresses = visibleSubjects.map(subject => calculateSubjectProgress(subject.id, progressSummary));
 
             totalProgress = allProgresses.reduce((sum, p) => sum + p, 0);
             const overallProgress = visibleSubjects.length > 0 ? Math.round(totalProgress / visibleSubjects.length) : 0;
@@ -552,52 +540,20 @@
         }
 
         async function checkFinalExamStatus() {
-            const user = await syncAndGetCurrentUser();
-            if (!user || !user.progress || !currentStream) return;
+            try {
+                const res = await apiGet('/api/user/final-exam-status');
+                const data = await res.json();
+                const allComplete = data.ok && data.isEligible;
 
-            const allStreamSubjects = subjects[currentStream];
-            if (!allStreamSubjects) return;
-
-            // Filter subjects to only those the user has access to, matching the display logic.
-            const trialActive = isTrialActive();
-            const trialPlan = localStorage.getItem('trialPlan');
-            const hasAdvancedPlan = user && user.plan === 'advanced' && user.paymentStatus === 'approved';
-            const streamSubjects = allStreamSubjects.filter(subject => {
-                if (subject.id === 'english_advanced') {
-                    return hasAdvancedPlan || (trialActive && trialPlan === 'advanced');
+                const finalExamBtn = document.getElementById('finalExamBtn');
+                finalExamBtn.disabled = !allComplete;
+                if (allComplete) {
+                    document.getElementById('finalExamStatus').textContent = 'You are eligible to take the final exam!';
+                    finalExamBtn.onclick = () => takeFinalExam();
                 }
-                return true;
-            });
-
-            let allComplete = true;
-
-            for (const subject of streamSubjects) {
-
-                for (const grade of subject.grades) {
-                    // Fetch the actual number of units for this subject/grade from the backend
-                    const res = await apiGet(`/api/courses/${subject.id}/${grade}`);
-                    const data = await res.json();
-                    const totalUnitsInGrade = data.units ? data.units.length : 0;
-
-                    if (totalUnitsInGrade === 0) continue; // Skip grades with no content
-
-                    const completedUnitsInGrade = user.progress.filter(p =>
-                        p.subject === subject.id && p.grade === grade && p.percentage === 100
-                    ).length;
-
-                    if (completedUnitsInGrade < totalUnitsInGrade) {
-                        allComplete = false;
-                        console.log(`Incomplete: ${subject.name} Grade ${grade}. Found ${completedUnitsInGrade}/${totalUnitsInGrade} units.`);
-                        break; // Exit the inner loop (grades)
-                    }
-                }
-
-                if (!allComplete) break; // Exit the outer loop (subjects)
+            } catch (error) {
+                console.error('Could not check final exam status:', error);
             }
-
-            const finalExamBtn = document.getElementById('finalExamBtn');
-            finalExamBtn.disabled = !allComplete;
-            if (allComplete) finalExamBtn.onclick = () => takeFinalExam();
         }
 
         async function renderGradeList(subject) {

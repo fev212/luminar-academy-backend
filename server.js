@@ -462,7 +462,7 @@ app.post(
     const token = signToken({ id: user._id.toString(), role: user.role });
     const refresh = signRefreshToken({ id: user._id.toString(), role: user.role });
     res.cookie('refreshToken', refresh, { httpOnly: true, sameSite: 'lax', secure: IS_PROD, maxAge: 30 * 24 * 3600 * 1000 });
-    res.json({ ok: true, token, user: { id: user._id, fullName: user.fullName, email: user.email, schoolName: user.schoolName, verified: user.verified, role: user.role } });
+    res.json({ ok: true, token, user: { id: user._id, fullName: user.fullName, email: user.email, schoolName: user.schoolName, verified: user.verified, role: user.role, paymentStatus: user.paymentStatus } });
 }
 );
 
@@ -553,6 +553,57 @@ app.post('/api/activity', auth, async (req, res) => {
     const activity = { ...req.body, createdAt: new Date() };
     await User.updateOne({ _id: req.user.id }, { $push: { activities: { $each: [activity], $slice: -20 } } });
     res.json({ ok: true });
+});
+
+app.get('/api/user/final-exam-status', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).lean();
+        if (!user || !user.stream) {
+            return res.json({ ok: true, isEligible: false, reason: 'User stream not set.' });
+        }
+
+        // This is a simplified list of subjects. In a real app, this should not be hardcoded.
+        const streamSubjects = {
+            natural: ['physics', 'chemistry', 'biology', 'mathematics', 'english'],
+            social: ['history', 'geography', 'economics', 'mathematics', 'english']
+        };
+        if (user.plan === 'advanced') {
+            streamSubjects.natural.push('english_advanced');
+            streamSubjects.social.push('english_advanced');
+        }
+
+        const subjectsForUser = streamSubjects[user.stream];
+        if (!subjectsForUser) {
+            return res.json({ ok: true, isEligible: false, reason: 'Invalid stream.' });
+        }
+
+        const allContent = await CourseContent.find({ subject: { $in: subjectsForUser } }).lean();
+        const unitCounts = allContent.reduce((acc, content) => {
+            const key = `${content.subject}-${content.grade}`;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const completedCounts = (user.progress || []).reduce((acc, p) => {
+            if (p.percentage === 100) {
+                const key = `${p.subject}-${p.grade}`;
+                acc[key] = (acc[key] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        for (const key in unitCounts) {
+            if ((completedCounts[key] || 0) < unitCounts[key]) {
+                return res.json({ ok: true, isEligible: false, reason: `Incomplete content for ${key}.` });
+            }
+        }
+
+        res.json({ ok: true, isEligible: true });
+
+    } catch (error) {
+        console.error('Error checking final exam status:', error);
+        res.status(500).json({ error: 'Failed to check final exam status' });
+    }
 });
 
 app.get('/api/user/progress-summary', auth, async (req, res) => {
@@ -739,6 +790,10 @@ app.post(
     }),
     async (req, res) => {
     const payment = await Payment.create({ userId: req.user.id, ...req.body, status: req.body.status || 'pending' });
+    
+    // Also update the user's status to 'pending' to reflect the new payment submission.
+    await User.updateOne({ _id: req.user.id }, { $set: { paymentStatus: 'pending' } });
+
     res.json({ ok: true, payment });
 }
 );
@@ -833,10 +888,38 @@ app.post('/api/admin/content', auth, adminOnly, upload.single('mediaFile'), (req
 app.post('/api/admin/quiz', auth, adminOnly, async (req, res) => {
     // In a real app, you'd add Joi validation here
     const { subject, grade, unit, question, options, answer, explanation } = req.body;
-    const newQuestion = await QuizQuestion.create({
-        subject, grade, unit, question, options, answer, explanation
-    });
-    res.status(201).json({ ok: true, question: newQuestion });
+    try {
+        const newQuestion = await QuizQuestion.create({
+            subject, grade, unit, question, options, answer, explanation
+        });
+        res.status(201).json({ ok: true, question: newQuestion });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create question', details: err.message });
+    }
+});
+
+app.post('/api/admin/quiz/bulk', auth, adminOnly, celebrate({
+    [Segments.BODY]: Joi.array().items(Joi.object({
+        subject: Joi.string().required(),
+        grade: Joi.number().required(),
+        unit: Joi.number().required(),
+        question: Joi.string().required(),
+        options: Joi.array().items(Joi.string()).min(2).required(),
+        answer: Joi.number().integer().min(0).required(),
+        explanation: Joi.string().allow('', null),
+        stream: Joi.string().allow('', null)
+    })).min(1)
+}), async (req, res) => {
+    const questions = req.body;
+    try {
+        const result = await QuizQuestion.insertMany(questions, { ordered: false });
+        res.status(201).json({
+            ok: true,
+            message: `Successfully inserted ${result.length} questions.`
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to insert questions. Please check for duplicates or data format errors.', details: err.message });
+    }
 });
 
 app.post('/api/admin/final-exam', auth, adminOnly, async (req, res) => {

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment - Luminar School</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -262,13 +263,13 @@
     <!-- Success Modal -->
     <div id="successModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="goToLogin()">&times;</span>
+            <span class="close" onclick="closeModal('successModal')">&times;</span>
             <div style="text-align: center;">
                 <i class="fas fa-check-circle" style="font-size: 4rem; color: #27ae60; margin-bottom: 1rem;"></i>
                 <h2>Payment Submitted Successfully!</h2>
                 <p>Your payment has been submitted and is pending verification. You will receive an email confirmation once your payment is verified by our admin team.</p>
                 <p><strong>What's next?</strong></p>
-                <ul style="text-align: left; margin: 1rem 0; display: inline-block;">
+                <ul style="text-align: left; margin: 1rem auto; display: inline-block; max-width: 400px;">
                     <li>Wait for admin verification (usually within 24 hours)</li>
                     <li>Check your email for confirmation</li>
                     <li>Once verified, you can login and start learning</li>
@@ -395,12 +396,13 @@
         }
 
         function getPlanAmount() {
-            switch(selectedPlan) {
-                case 'basic': return '1000';
-                case 'advanced': return '2000';
-                case 'annual': return '8,000';
-                default: return '0';
+            if (!selectedPlan) return '0';
+            const planCard = document.getElementById(selectedPlan + 'Plan');
+            if (planCard) {
+                const amountEl = planCard.querySelector('.plan-price .amount');
+                return amountEl ? amountEl.textContent : '0';
             }
+            return '0';
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -481,7 +483,7 @@
             
             function goToLogin() {
             // Redirect to the dashboard where the user can see their pending status.
-            window.location.href = 'dashboard.html';
+            window.location.href = 'login.html';
             }
 
             async function initializePage() {
