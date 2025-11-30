@@ -777,8 +777,15 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 try {
-                    const questions = JSON.parse(event.target.result);
-                    if (!Array.isArray(questions) || questions.length === 0) {
+                    const fileContent = event.target.result;
+
+                    // Add a check for empty or whitespace-only files.
+                    if (!fileContent || fileContent.trim() === '') {
+                        throw new Error('The selected file is empty. Please select a valid JSON file.');
+                    }
+
+                    const questions = JSON.parse(fileContent);
+                    if (!Array.isArray(questions)) {
                         throw new Error('JSON file must contain an array of at least one question object.');
                     }
 
