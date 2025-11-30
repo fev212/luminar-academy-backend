@@ -117,11 +117,15 @@
                 return;
             }
 
-            const res = await apiGet(`/api/courses/${currentSubject}/${currentGrade}?unit=${currentUnit}`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to load quiz');
-            
-            quizData = data.questions || [];
+            // Correctly load questions from localStorage, where explanations are stored.
+            const questionsFromStorage = localStorage.getItem('currentQuestions');
+            if (questionsFromStorage) {
+                quizData = JSON.parse(questionsFromStorage);
+            } else {
+                // Fallback if localStorage is empty, though this shouldn't happen in the normal flow.
+                const res = await apiGet(`/api/courses/${currentSubject}/${currentGrade}?unit=${currentUnit}`);
+                quizData = (await res.json()).questions || [];
+            }
 
             if (quizData.length === 0) {
                 document.getElementById('quizContent').innerHTML = `
@@ -290,12 +294,14 @@
             const resultTitle = document.getElementById('quizResultTitle');
             const resultContent = document.getElementById('quizResultContent');
             const retakeBtn = document.getElementById('retakeBtn');
+
+            let summaryHTML = '';
             
             if (passed) {
                 // If it was a regular quiz, show the "passed" modal.
                 resultIcon.innerHTML = '<i class="fas fa-check-circle" style="color: #27ae60;"></i>';
                 resultTitle.textContent = 'Congratulations! You Passed!';
-                resultContent.innerHTML = `
+                summaryHTML = `
                     <p style="font-size: 1.2rem; margin-bottom: 1rem;">Your Score: <strong style="color: #27ae60;">${score}%</strong></p>
                     <p>You have successfully completed this quiz with a score of ${score}%. You can now proceed to the next unit or continue with other subjects.</p>
                 `;
@@ -304,12 +310,49 @@
                 // If the quiz was not passed, show the "failed" modal.
                 resultIcon.innerHTML = '<i class="fas fa-times-circle" style="color: #e74c3c;"></i>';
                 resultTitle.textContent = 'Quiz Not Passed';
-                resultContent.innerHTML = `
+                summaryHTML = `
                     <p style="font-size: 1.2rem; margin-bottom: 1rem;">Your Score: <strong style="color: #e74c3c;">${score}%</strong></p>
                     <p>You scored ${score}%, but you need at least 80% to pass. You can retake the quiz to improve your score.</p>
                 `;
                 retakeBtn.style.display = 'inline-block';
             }
+
+            // Only show the detailed explanation section if the user passed the quiz.
+            if (passed) {
+                summaryHTML += `
+                    <div class="quiz-review-section" style="margin-top: 2rem; text-align: left; border-top: 1px solid #eee; padding-top: 1rem; max-height: 40vh; overflow-y: auto; padding-right: 1rem;">
+                        <h3 style="text-align: center; margin-bottom: 1.5rem;">Question Review</h3>
+                        ${results.map((result, index) => `
+                            <div class="review-item" style="margin-bottom: 1.5rem; padding: 1rem; border: 1px solid ${result.isCorrect ? '#27ae60' : '#e74c3c'}; border-radius: 8px; background-color: ${result.isCorrect ? '#f0fff4' : '#fff5f5'};">
+                                <p style="font-weight: bold; color: #333;">Q${index + 1}: ${result.question}</p>
+                                <p style="margin: 0.5rem 0;">
+                                    Your Answer: 
+                                    <span style="color: ${result.isCorrect ? '#27ae60' : '#e74c3c'}; font-weight: bold;">
+                                        ${result.userAnswer !== undefined ? quizData[index].options[result.userAnswer] : 'Not Answered'}
+                                    </span>
+                                    ${result.isCorrect ? '<i class="fas fa-check" style="color: #27ae60; margin-left: 0.5rem;"></i>' : '<i class="fas fa-times" style="color: #e74c3c; margin-left: 0.5rem;"></i>'}
+                                </p>
+                                ${!result.isCorrect ? `
+                                    <p style="margin: 0.5rem 0;">
+                                        Correct Answer: 
+                                        <strong style="color: #27ae60;">
+                                            ${quizData[index].options[result.correctAnswer]}
+                                        </strong>
+                                    </p>
+                                ` : ''}
+                                ${result.explanation ? `
+                                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ddd;">
+                                        <p style="margin: 0; font-weight: bold; color: #555;">Explanation:</p>
+                                        <p style="margin: 0.25rem 0 0 0; color: #666;">${result.explanation}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                        <button class="btn btn-primary" onclick="goToNextUnit()" style="margin-top: 1rem; width: 100%;">Next Unit <i class="fas fa-arrow-right"></i></button>
+                    </div>`;
+            }
+
+            resultContent.innerHTML = summaryHTML;
             
             showModal('quizResultsModal');
         }
@@ -336,6 +379,11 @@
         function goToSubjects() {
             window.location.href = 'subjects.html';
         }
+
+        function goToNextUnit() {
+            window.location.href = 'course.html';
+        }
+
         // Load quiz on page load
         document.addEventListener('DOMContentLoaded', loadQuiz);
     </script>

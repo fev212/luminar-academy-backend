@@ -1,5 +1,7 @@
 // c:\feven\luminar-backend\server.js
 import { nanoid } from 'nanoid';
+import cluster from 'cluster';
+import os from 'os';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -293,6 +295,42 @@ async function seedAdmin() {
         });
         console.log('Sample chemistry content seeded.');
     }
+
+    const sampleHistoryContent = await CourseContent.findOne({ subject: 'history', grade: 9, unit: 1 });
+    if (!sampleHistoryContent) {
+        await CourseContent.create({
+            subject: 'history',
+            grade: 9,
+            unit: 1,
+            title: 'Ancient Civilizations',
+            content: `
+                <p>A study of the earliest human societies.</p>
+                <h4>Key Concepts:</h4>
+                <ul><li>Mesopotamia</li><li>Ancient Egypt</li></ul>
+            `
+        });
+        console.log('Sample history content seeded.');
+    }
+
+    const sampleGeographyContent = await CourseContent.findOne({ subject: 'geography', grade: 9, unit: 1 });
+    if (!sampleGeographyContent) {
+        await CourseContent.create({
+            subject: 'geography',
+            grade: 9,
+            unit: 1,
+            title: 'Introduction to Physical Geography',
+            content: `
+                <p>Exploring the natural features of the Earth.</p>
+            `
+        });
+        console.log('Sample geography content seeded.');
+    }
+
+    const sampleEconomicsContent = await CourseContent.findOne({ subject: 'economics', grade: 9, unit: 1 });
+    if (!sampleEconomicsContent) {
+        await CourseContent.create({ subject: 'economics', grade: 9, unit: 1, title: 'Principles of Scarcity', content: '<p>Understanding basic economic principles.</p>' });
+        console.log('Sample economics content seeded.');
+    }
 }
 
 // --- Mailer (using environment or ethereal fallback) ---
@@ -456,6 +494,12 @@ app.post(
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    // Security Enhancement: Check if the user's email is verified before allowing login.
+    if (!user.verified) {
+        return res.status(403).json({ 
+            error: 'Please verify your email address before logging in. Check your inbox for a verification link.' 
+        });
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
@@ -695,8 +739,11 @@ app.get('/api/courses/:subject/:grade', optionalAuth, async (req, res) => {
             }
 
             if (unit) query.unit = parseInt(unit, 10);
-            const units = await CourseContent.find(query).sort({ unit: 1 }).lean();
-            const questions = await QuizQuestion.find(query).lean();
+            // --- OPTIMIZATION: Run database queries in parallel ---
+            const [units, questions] = await Promise.all([
+                CourseContent.find(query).sort({ unit: 1 }).lean(),
+                QuizQuestion.find(query).lean()
+            ]);
             return res.json({ ok: true, units, questions });
         }
     }
@@ -711,8 +758,11 @@ app.get('/api/courses/:subject/:grade', optionalAuth, async (req, res) => {
 
     // For all other cases (trial users, guests, non-approved users), only serve Unit 1.
     query.unit = 1;
-    const units = await CourseContent.find(query).sort({ unit: 1 }).lean();
-    const questions = await QuizQuestion.find(query).lean();
+    // --- OPTIMIZATION: Run database queries in parallel ---
+    const [units, questions] = await Promise.all([
+        CourseContent.find(query).sort({ unit: 1 }).lean(),
+        QuizQuestion.find(query).lean()
+    ]);
     res.json({ ok: true, units, questions });
 });
 
@@ -961,19 +1011,45 @@ app.use((err, req, res, next) => { // The CSRF handler part is removed
     res.status(statusCode).json({ error: message });
 });
 
-// Start server
+// The startServer function remains the same, but it's now called by each worker.
 export async function startServer() {
     await connectDB();
     await setupMailer();
-    await seedAdmin();
+    // Only the primary process should seed the database to avoid race conditions.
+    if (cluster.isPrimary || !process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+        await seedAdmin();
+    }
     
     if (IS_PROD && JWT_SECRET === 'dev_secret') console.warn('WARNING: Using default JWT_SECRET in production!');
     app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+        // The console log will now show which worker is listening
+        console.log(`Worker ${process.pid} listening on http://localhost:${PORT}`);
     });
 }
 
 // This check prevents the server from starting automatically when running tests.
 if (process.env.NODE_ENV !== 'test') {
-    startServer().catch(console.error);
+    const numCPUs = os.cpus().length;
+
+    if (cluster.isPrimary) {
+        console.log(`Primary process ${process.pid} is running`);
+        console.log(`Forking server for ${numCPUs} CPUs`);
+
+        // Fork workers.
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork();
+        }
+
+        cluster.on('exit', (worker, code, signal) => {
+            console.log(`Worker ${worker.process.pid} died with code: ${code}, and signal: ${signal}`);
+            console.log('Starting a new worker...');
+            cluster.fork(); // Restart a worker when one dies
+        });
+    } else {
+        // Worker processes start the server.
+        startServer().catch(err => {
+            console.error(`Worker ${process.pid} failed to start:`, err);
+            process.exit(1); // Exit worker if it fails to start
+        });
+    }
 }

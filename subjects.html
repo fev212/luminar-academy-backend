@@ -329,21 +329,23 @@
             document.getElementById('streamTitle').textContent = streamNames[currentStream];
             document.getElementById('streamDescription').textContent = `You are studying ${streamNames[currentStream]} subjects. Click on any subject to start learning.`;
 
+            // --- OPTIMIZATION: Fetch progress summary once and reuse it ---
+            const progressSummaryRes = await apiGet('/api/user/progress-summary');
+            const progressSummaryData = await progressSummaryRes.json();
+            const progressSummary = progressSummaryData.progressSummary || {};
+
             // Display subjects
-            await displaySubjects(user);
+            await displaySubjects(user, progressSummary);
 
             // Update overall progress
-            await updateOverallProgress(user);
+            await updateOverallProgress(user, progressSummary);
 
             // Check and display final exam status
             checkFinalExamStatus();
         }
 
-        async function displaySubjects(user) {
+        async function displaySubjects(user, progressSummary) {
             const subjectsGrid = document.getElementById('subjectsGrid');
-            const progressSummaryRes = await apiGet('/api/user/progress-summary');
-            const progressSummaryData = await progressSummaryRes.json();
-            const progressSummary = progressSummaryData.progressSummary || {};
             const streamSubjects = subjects[currentStream];
 
             const trialActive = localStorage.getItem('trialActive') === 'true';
@@ -436,11 +438,8 @@
             return Math.round((totalCompleted / totalUnits) * 100);
         }
 
-        async function updateOverallProgress(user) {
+        async function updateOverallProgress(user, progressSummary) {
             const streamSubjects = subjects[currentStream] || [];
-            const progressSummaryRes = await apiGet('/api/user/progress-summary');
-            const progressSummaryData = await progressSummaryRes.json();
-            const progressSummary = progressSummaryData.progressSummary || {};
 
             const trialActive = localStorage.getItem('trialActive') === 'true';
             const trialPlan = localStorage.getItem('trialPlan');

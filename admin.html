@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Luminar School</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Add CKEditor for rich text editing -->
@@ -239,7 +242,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="explanation">Explanation</label>
-                                <textarea id="explanation" name="explanation" rows="2" required></textarea>
+                                <textarea id="explanation" name="explanation" rows="3" required></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-plus"></i> Add Question
@@ -710,7 +713,10 @@
             e.preventDefault();
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
-            data.options = data.options.split('\n').filter(o => o.trim() !== '');
+            // UX Improvement: Trim each option and filter out any empty lines
+            // to prevent blank options in the quiz.
+            data.options = data.options.split('\n').map(o => o.trim()).filter(o => o !== '');
+
             data.answer = parseInt(data.correctAnswer, 10); // Backend expects 'answer'
 
             // Rename fields to match backend schema
@@ -817,6 +823,7 @@
             populateSubjectDropdowns();
             // Initialize CKEditor on the content textarea
             CKEDITOR.replace('content');
+            CKEDITOR.replace('explanation');
         });
 
         function showJsonExample(event) {
